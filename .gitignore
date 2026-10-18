@@ -1,0 +1,71 @@
+# ==========================================================
+# Unity 工程 .gitignore（官方模板 + 本项目补充）
+# 原则：Library/Temp/Logs 等生成目录不进版本库；
+#       Assets 下的资源必须连同 .meta 一起提交。
+# ==========================================================
+
+# ---------- Unity 生成目录 ----------
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Asset Store 下载的包缓存（如需要随工程走再取消注释）
+# /[Aa]ssets/AssetStoreTools*
+
+# .meta 必须提交：只有当对应资源本身被忽略时才忽略它的 meta
+!/[Aa]ssets/**/*.meta
+
+# ---------- IDE / 编辑器 ----------
+.vs/
+.vscode/
+.idea/
+.gradle/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ---------- Unity 生成的附加文件 ----------
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+
+# ---------- 构建产物 / 打包 ----------
+*.apk
+*.aab
+*.unitypackage
+*.app
+*.exe
+*.zip
+
+# ---------- Addressables / 流式资源缓存 ----------
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ---------- 崩溃报告 ----------
+crashlytics-build.properties
+
+# ---------- 系统文件 ----------
+Thumbs.db
+.DS_Store
+desktop.ini

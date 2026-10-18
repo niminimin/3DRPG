@@ -1,0 +1,55 @@
+# ==========================================================
+# .gitattributes —— Unity 工程
+# 作用：
+#   1) 让 Git 把 Unity 的 YAML 资源交给 UnityYAMLMerge 做智能合并
+#   2) 统一文本文件的换行处理，避免整个文件被判定为改动
+# ==========================================================
+
+# 默认：文本文件统一在版本库存 LF；
+# Unity 在 Windows 上也写 LF（.unity/.prefab/.asset/.meta 都是 LF），
+# 所以工作区也保持 LF，避免每次 checkout 都出现"整文件改动"的假 diff。
+* text=auto eol=lf
+
+# C# / 工程文件：IDE 在 Windows 上写 CRLF，工作区就保持 CRLF
+*.cs       text eol=crlf diff=csharp
+*.sln      text eol=crlf
+*.csproj   text eol=crlf
+
+# ---------- Unity 序列化文件（YAML）：使用 SmartMerge ----------
+*.meta       merge=unityyamlmerge
+*.unity      merge=unityyamlmerge
+*.prefab     merge=unityyamlmerge
+*.asset      merge=unityyamlmerge
+*.controller merge=unityyamlmerge
+*.anim       merge=unityyamlmerge
+*.mat        merge=unityyamlmerge
+*.physicMaterial merge=unityyamlmerge
+*.physicsMaterial2D merge=unityyamlmerge
+*.overrideController merge=unityyamlmerge
+*.spriteatlas    merge=unityyamlmerge
+
+# ---------- 代码：diff 友好 ----------
+*.cs      text diff=csharp
+*.shader  text
+*.hlsl    text
+*.cginc   text
+*.shadergraph text
+*.shadersubgraph text
+
+# ---------- 二进制资源（明确标记，避免被当文本处理） ----------
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.tga     binary
+*.psd     binary
+*.exr     binary
+*.fbx     binary
+*.obj     binary
+*.blend   binary
+*.wav     binary
+*.mp3     binary
+*.ogg     binary
+*.dll     binary
+*.so      binary
+*.a       binary
+*.unitypackage binary
