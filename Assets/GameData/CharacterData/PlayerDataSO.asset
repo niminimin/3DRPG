@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: PlayerDataSO
   m_EditorClassIdentifier: 
   maxHealth: 100
-  baseDefence: 5
+  baseDefence: 2

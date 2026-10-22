@@ -39,18 +39,18 @@ public class AttackState : BaseState
             return;
         }
 
-        // 冷却计时：到点就"出手"一次，间隔取自 AttackDataSO.coolDown
+        // 冷却计时：到点就出手一次，间隔取自 AttackDataSO.coolDown
         attackTimer -= Time.deltaTime;
         if (attackTimer <= 0f)
         {
             attackTimer = enemy.AttackCoolDown;
-            Debug.Log("attack");
-            enemy.Attack();
+            enemy.Attack();                     // 只负责：算好伤害 + 播动画；伤害由动画事件 OnAttackHit 结算
         }
     }
 
     public override void OnExit()
     {
-        // TODO: 之后在这里收尾攻击动画 / 停止攻击特效
+        // 离开攻击状态时，还没播到命中帧的那一下作废（例如追踪目标跑出范围）
+        enemy.CancelPendingAttack();
     }
 }

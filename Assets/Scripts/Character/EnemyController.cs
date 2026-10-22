@@ -14,6 +14,10 @@ public class EnemyController : MonoBehaviour
     public Animator animator;
     private CharacterStats characterStats;
 
+    // 攻击开始就算好、但等动画命中帧才结算的那一下
+    private DamageResult pendingDamage;
+    private bool hasPendingDamage;
+
     [Header("巡逻")]
     public float patrolRadius;
 
@@ -251,15 +255,50 @@ public class EnemyController : MonoBehaviour
         return agent.remainingDistance <= agent.stoppingDistance + 0.2f;
     }
 
+    /// <summary>
+    /// 攻击开始（由 AttackState 按冷却调用）：决定是否暴击（要选 clip）+ 播放动画 + 暂存结果。
+    /// 真正的伤害在动画事件 <see cref="OnAttackHit"/> 里结算。
+    /// </summary>
     public void Attack()
     {
-        if(Random.value <= CriticalChance)
+        CharacterStats targetStats = attackTarget != null ? attackTarget.GetComponent<CharacterStats>() : null;
+
+        if (Stats == null || targetStats == null)
         {
-            animator.SetTrigger("CriticalAttack");
+            hasPendingDamage = false;
+            animator.SetTrigger("Attack");      // 缺数值组件时只做表现，不结算
+            return;
         }
-        else
-        {
-            animator.SetTrigger("Attack");
-        }
+
+        pendingDamage = Stats.CalculateDamage(targetStats);
+        hasPendingDamage = true;
+
+        animator.SetTrigger(pendingDamage.isCritical ? "CriticalAttack" : "Attack");
+    }
+
+    /// <summary>
+    /// 【动画事件】攻击动作打到目标的那一帧调用（在 clip 上 Add Animation Event，函数名填 OnAttackHit）。
+    /// 每个攻击 clip（Attack01/Attack02/CriticalAttack…）都要加同名的这个事件。
+    /// </summary>
+    public void OnAttackHit()
+    {
+        if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
+        hasPendingDamage = false;           // 一次攻击只结算一次
+
+        if (attackTarget == null) return;
+
+        CharacterStats targetStats = attackTarget.GetComponent<CharacterStats>();
+        if (targetStats == null) return;
+
+        // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
+        if (DistanceToPlayer() > AttackRange) return;
+
+        targetStats.TakeDamage(pendingDamage);
+    }
+
+    /// <summary>取消尚未命中的这一下（离开攻击状态、被硬直打断时调用）。</summary>
+    public void CancelPendingAttack()
+    {
+        hasPendingDamage = false;
     }
 }

@@ -12,6 +12,12 @@ public class CharacterStats : MonoBehaviour
     private int curHealth;
     private int curDefence;
 
+    /// <summary>血量变化时通知（参数为当前血量），UI 血条等外部系统订阅用。</summary>
+    public event System.Action<int> OnHealthChanged;
+
+    /// <summary>血量归零时通知一次，死亡状态/掉落等订阅用。</summary>
+    public event System.Action OnDead;
+
     private void Awake()
     {
         ResetCurStats();
@@ -89,7 +95,7 @@ public class CharacterStats : MonoBehaviour
 
     public float CriticalMultiplier
     {
-        get { return attackData == null ? 0f : attackData.criticalMultiplier; }
+        get { return attackData == null ? 1f : attackData.criticalMultiplier; }
         set { if (attackData != null) attackData.criticalMultiplier = value; }
     }
 
@@ -97,6 +103,50 @@ public class CharacterStats : MonoBehaviour
     {
         get { return attackData == null ? 0f : attackData.criticalChance; }
         set { if (attackData != null) attackData.criticalChance = value; }
+    }
+    #endregion
+
+    #region 伤害结算
+    /// <summary>
+    /// 攻击方：计算一次伤害（含暴击判定）。
+    /// 暴击只在这里掷一次骰子，表现层（动画）和扣血共用同一个结果。
+    /// </summary>
+    public DamageResult CalculateDamage(CharacterStats target)
+    {
+        DamageResult result = new DamageResult();
+
+        // Random.Range(int, int) 是开区间，+1 变成闭区间
+        int damage = Random.Range(MinDamage, MaxDamage + 1);
+
+        result.isCritical = Random.value < CriticalChance;
+        if (result.isCritical)
+            damage = Mathf.RoundToInt(damage * Mathf.Max(1f, CriticalMultiplier));
+
+        int defence = target == null ? 0 : target.CurDefence;
+        result.amount = Mathf.Max(damage - defence, 0);
+
+        return result;
+    }
+
+    /// <summary>防御方：扣血并广播事件（环境伤害等无暴击来源可直接用这个重载）。</summary>
+    public void TakeDamage(int amount)
+    {
+        TakeDamage(new DamageResult { amount = amount, isCritical = false });
+    }
+
+    /// <summary>防御方：扣血并广播事件。</summary>
+    public void TakeDamage(DamageResult result)
+    {
+        if (result.amount <= 0) return;
+
+        CurHealth = Mathf.Max(CurHealth - result.amount, 0);
+
+        Debug.Log("[" + name + "] 受到 " + result.amount + " 点伤害"
+                  + (result.isCritical ? "（暴击）" : "")
+                  + "，剩余 " + CurHealth + "/" + MaxHealth);
+
+        if (OnHealthChanged != null) OnHealthChanged(CurHealth);
+        if (CurHealth <= 0 && OnDead != null) OnDead();
     }
     #endregion
 }

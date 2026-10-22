@@ -16,6 +16,10 @@ public class PlayerController : MonoBehaviour
     private GameObject attackTarget;
     private CharacterStats characterStats;
 
+    // 攻击开始就算好、但等动画命中帧才结算的那一下
+    private DamageResult pendingDamage;
+    private bool hasPendingDamage;
+
     #region ReadFromSO
     /// <summary>角色数值（从 AttackDataSO 读攻击距离/冷却/伤害）。</summary>
     public CharacterStats Stats
@@ -91,6 +95,7 @@ public class PlayerController : MonoBehaviour
     public void MoveToPosition(Vector3 target)
     {
         StopAllCoroutines();        // 取消正在进行的追击 / 攻击
+        CancelPendingAttack();      // 挥砍未命中就取消，避免点地面后还结算伤害
         attackTarget = null;
         agent.isStopped = false;
         agent.destination = target;
@@ -102,6 +107,7 @@ public class PlayerController : MonoBehaviour
 
         // 反复点同一个敌人时，先停掉上一轮，避免叠出多条协程 -> 攻击频率翻倍
         StopAllCoroutines();
+        CancelPendingAttack();      // 换目标时丢弃上一刀未命中的结算
         attackTarget = target;
         StartCoroutine(MoveToAttackTarget());
     }
@@ -137,17 +143,57 @@ public class PlayerController : MonoBehaviour
                 // ---- 攻击阶段：站定、转向、按 SO 里的冷却出手 ----
                 agent.isStopped = true;
                 FaceTarget();
-                if(Random.value <= CriticalChance)
-                {
-                    animator.SetTrigger("CriticalAttack");
-                }
-                else
-                {
-                    animator.SetTrigger("Attack");
-                }
+                BeginAttack();
                 yield return new WaitForSeconds(AttackCoolDown);
             }
         }
+    }
+
+    /// <summary>
+    /// 攻击开始：决定是否暴击（要选 clip，所以必须提前掷骰）+ 播放动画 + 暂存结果。
+    /// 真正的伤害在动画事件 <see cref="OnAttackHit"/> 里结算。
+    /// </summary>
+    private void BeginAttack()
+    {
+        CharacterStats targetStats = attackTarget != null ? attackTarget.GetComponent<CharacterStats>() : null;
+
+        if (Stats == null || targetStats == null)
+        {
+            hasPendingDamage = false;
+            animator.SetTrigger("Attack");      // 缺数值组件时只做表现，不结算
+            return;
+        }
+
+        pendingDamage = Stats.CalculateDamage(targetStats);
+        hasPendingDamage = true;
+
+        animator.SetTrigger(pendingDamage.isCritical ? "CriticalAttack" : "Attack");
+    }
+
+    /// <summary>
+    /// 【动画事件】攻击动作打到目标的那一帧调用（在 clip 上 Add Animation Event，函数名填 OnAttackHit）。
+    /// 每个攻击 clip（Attack01/Attack02/CriticalAttack…）都要加同名的这个事件。
+    /// </summary>
+    public void OnAttackHit()
+    {
+        if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
+        hasPendingDamage = false;           // 一次挥砍只结算一次
+
+        if (attackTarget == null) return;
+
+        CharacterStats targetStats = attackTarget.GetComponent<CharacterStats>();
+        if (targetStats == null) return;
+
+        // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
+        if (Vector3.Distance(transform.position, attackTarget.transform.position) > AttackRange) return;
+
+        targetStats.TakeDamage(pendingDamage);
+    }
+
+    /// <summary>取消尚未命中的这一下（点地面 / 切换目标 / 被打断时调用）。</summary>
+    public void CancelPendingAttack()
+    {
+        hasPendingDamage = false;
     }
 
     private void FaceTarget()
