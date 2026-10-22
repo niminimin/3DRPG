@@ -1,5 +1,5 @@
 
 public enum EnemyState
 {
-    GUARD, PATROL, CHASE, DEAD
+    GUARD, PATROL, CHASE, RETURN ,DEAD
 }

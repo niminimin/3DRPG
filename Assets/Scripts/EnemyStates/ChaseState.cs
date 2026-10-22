@@ -8,19 +8,22 @@ public class ChaseState : BaseState
     {
         if (!enemy.FoundPlayer())
         {
-            enemy.SwitchState(EnemyState.GUARD);
+            enemy.SwitchState(EnemyState.RETURN);
+            return;
         }
+        enemy.MoveToPlayer();
     }
 
     public override void OnEnter(EnemyController target)
     {
         enemy = target;
-        Debug.Log("chase");
+        //Debug.Log("chase");
         //TODO 动画
+        enemy.animator.SetBool("IsChase", true);
     }
 
     public override void OnExit()
     {
-        
+        enemy.animator.SetBool("IsChase", false);
     }
 }
