@@ -20,7 +20,7 @@ public class ChaseState : BaseState
             return;
         }
 
-        enemy.MoveToPlayer();
+        enemy.Locomotion.MoveTo(enemy.TargetPosition);
     }
 
     public override void OnEnter(EnemyController target)

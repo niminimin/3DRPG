@@ -19,7 +19,7 @@ public class DeadState : BaseState
     {
         this.enemy = enemy;
 
-        enemy.StopAgent();                      // 停住并清掉残余路径
+        enemy.Locomotion.Stop();                // 停住并清掉残余路径
         enemy.animator.SetBool("IsDead", true); // 播死亡动画
 
         // 尸体不再参与点击/碰撞，免得玩家还能点着打

@@ -45,18 +45,6 @@ public class PlayerController : MonoBehaviour
     {
         get { return AttackRange + attackExitBuffer; }
     }
-
-    /// <summary>暴击倍率：来自 AttackDataSO。没配数据时为 1（等于不暴击）。</summary>
-    public float CriticalMultiplier
-    {
-        get { return characterStats == null ? 1f : characterStats.CriticalMultiplier; }
-    }
-
-    /// <summary>暴击率：来自 AttackDataSO，范围 0~1。</summary>
-    public float CriticalChance
-    {
-        get { return characterStats == null ? 0f : Mathf.Clamp01(characterStats.CriticalChance); }
-    }
     #endregion
 
     private void Awake()

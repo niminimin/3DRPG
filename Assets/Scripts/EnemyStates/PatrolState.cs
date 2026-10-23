@@ -21,7 +21,7 @@ public class PatrolState : BaseState
         }
 
         // ---- 到了巡逻点：停下等一会儿，再取下一个点 ----
-        if (enemy.HasArrivedAtPatrolPoint())
+        if (enemy.Locomotion.HasArrivedAtDestination())
         {
             if (!isWaiting)
             {
@@ -29,15 +29,14 @@ public class PatrolState : BaseState
                 waitTimer = 0f;
                 walkTimer = 0f;
                 enemy.animator.SetBool("IsWalk", false);
-                enemy.StopAgent();                  // 站定，避免惯性往前滑
+                enemy.Locomotion.Stop();            // 站定，避免惯性往前滑
             }
 
             waitTimer += Time.deltaTime;
             if (waitTimer >= enemy.patrolWaitTime)
             {
                 isWaiting = false;
-                enemy.GetNewWayPoint();
-                enemy.MoveToPatrolPoint();          // 立刻出发，否则下一帧又会被判定为"已到达"
+                PickNewPatrolPoint();
                 enemy.animator.SetBool("IsWalk", true);
             }
             return;
@@ -48,9 +47,16 @@ public class PatrolState : BaseState
         if (walkTimer >= MaxWalkTime)
         {
             walkTimer = 0f;
-            enemy.GetNewWayPoint();                 // 走了太久还到不了，换一个点
+            PickNewPatrolPoint();                   // 走了太久还到不了，换一个点
         }
-        enemy.MoveToPatrolPoint();
+        enemy.Locomotion.MoveTo(enemy.curPatrolPoint);
+    }
+
+    /// <summary>取一个新巡逻点并立刻出发（否则下一帧又会被判定为"已到达"）。</summary>
+    private void PickNewPatrolPoint()
+    {
+        enemy.curPatrolPoint = enemy.Locomotion.SamplePointAround(enemy.initPosition, enemy.patrolRadius);
+        enemy.Locomotion.MoveTo(enemy.curPatrolPoint);
     }
 
     public override void OnEnter(EnemyController target)
@@ -60,8 +66,7 @@ public class PatrolState : BaseState
         waitTimer = 0f;
         walkTimer = 0f;
 
-        enemy.GetNewWayPoint();
-        enemy.MoveToPatrolPoint();
+        PickNewPatrolPoint();
         enemy.animator.SetBool("IsWalk", true);
     }
 

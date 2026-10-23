@@ -14,8 +14,8 @@ public class AttackState : BaseState
     {
         this.enemy = enemy;
 
-        enemy.StopAgent();                      // 站定，不能边追边打
-        enemy.FaceToPlayer();                   // 立刻转向玩家
+        enemy.Locomotion.Stop();                // 站定，不能边追边打
+        enemy.Locomotion.FaceTo(enemy.TargetPosition);   // 立刻转向玩家
         enemy.animator.SetBool("IsChase", false);
 
         attackTimer = 0f;                       // 进入状态立刻打第一下
@@ -30,7 +30,7 @@ public class AttackState : BaseState
             return;
         }
 
-        enemy.FaceToPlayer();                   // 玩家绕后时保持面向
+        enemy.Locomotion.FaceTo(enemy.TargetPosition);   // 玩家绕后时保持面向
 
         // 目标跑出攻击距离（AttackExitRange = AttackRange + 余量，避免边界抖动）
         if (enemy.DistanceToPlayer() > enemy.AttackExitRange)

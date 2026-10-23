@@ -312542,6 +312542,11 @@ PrefabInstance:
       propertyPath: m_Speed
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3826184361460846800, guid: 8454646dd64e3ce4fa30755ce2edd0b8,
+        type: 3}
+      propertyPath: m_StoppingDistance
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4099368842315992517, guid: 8454646dd64e3ce4fa30755ce2edd0b8,
         type: 3}
       propertyPath: sightRadius

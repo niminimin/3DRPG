@@ -17,7 +17,7 @@ public class CelebrateState : BaseState
     {
         this.enemy = enemy;
 
-        enemy.StopAgent();                  // 站定
+        enemy.Locomotion.Stop();            // 站定
         enemy.CancelPendingAttack();        // 别再结算没命中的攻击
 
         enemy.animator.SetBool("IsWalk", false);

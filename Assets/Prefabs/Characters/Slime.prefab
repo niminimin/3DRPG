@@ -204,6 +204,7 @@ GameObject:
   - component: {fileID: 3826184361460846800}
   - component: {fileID: 6834579660596840230}
   - component: {fileID: 7731876700794221320}
+  - component: {fileID: 52092310800417921}
   m_Layer: 7
   m_Name: Slime
   m_TagString: Enemy
@@ -314,6 +315,18 @@ MonoBehaviour:
   initRotation: {x: 0, y: 0, z: 0, w: 0}
   DestroyAfterDeath: 1
   corpseKeepTime: 1
+--- !u!114 &52092310800417921
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4239668271317880106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: befa1d56849cf644d84f2705b9eecb56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6749180970912363648
 GameObject:
   m_ObjectHideFlags: 0

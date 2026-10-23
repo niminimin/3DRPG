@@ -9,7 +9,9 @@ public abstract class EnemyController : MonoBehaviour
     [Header("感知")]
     public float sightRadius;
 
-    protected NavMeshAgent agent;
+    /// <summary>移动能力（NavMeshAgent 的封装），由 Awake 自动挂载。</summary>
+    public EnemyLocomotion Locomotion { get; private set; }
+
     protected GameObject attackTarget;
     public Animator animator;
     protected CharacterStats characterStats;
@@ -62,16 +64,7 @@ public abstract class EnemyController : MonoBehaviour
     {
         get { return characterStats; }
     }
-    public float CriticalChance
-    {
-        get { return characterStats == null ? 0f : Mathf.Clamp01(characterStats.CriticalChance); }
-    }
 
-    public float CriticalMultiplier
-    {
-        // 数据缺失时退回 1（等于不暴击）。返回 0 会把伤害算成 0，比不暴击更糟。
-        get { return characterStats == null ? 1f : characterStats.CriticalMultiplier; }
-    }
     /// <summary>攻击距离：来自 AttackDataSO。没配数据时为 0，表示不会进入攻击状态。</summary>
     public float AttackRange
     {
@@ -93,9 +86,13 @@ public abstract class EnemyController : MonoBehaviour
 
     protected virtual void Awake()
     {
-        agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         characterStats = GetComponent<CharacterStats>();
+
+        // 移动能力组件：场景/预制体上没挂就自动补一个，保证老资产也能跑
+        Locomotion = GetComponent<EnemyLocomotion>();
+        if (Locomotion == null)
+            Locomotion = gameObject.AddComponent<EnemyLocomotion>();
 
         guardState = new GuardState();
         chaseState = new ChaseState();
@@ -109,6 +106,8 @@ public abstract class EnemyController : MonoBehaviour
         curPatrolPoint = transform.position;
         initRotation = transform.rotation;
 
+        // 出生点快照同步给移动组件，两边用同一份数据
+        Locomotion.SetHome(initPosition, initRotation);
         // 初始状态由子类决定（巡逻型 = PATROL，守卫型 = GUARD）
         curEnemyState = GetState(InitialState);
         if (curEnemyState == null)
@@ -246,99 +245,10 @@ public abstract class EnemyController : MonoBehaviour
         return Vector3.Distance(self, player);
     }
 
-    /// <summary>朝玩家转身（只转水平方向，避免身体前倾）。</summary>
-    public void FaceToPlayer()
+    /// <summary>当前目标的世界坐标；没有目标时返回自己的位置（移动/转向会变成原地不动）。</summary>
+    public Vector3 TargetPosition
     {
-        if (attackTarget == null) return;
-
-        Vector3 dir = attackTarget.transform.position - transform.position;
-        dir.y = 0f;
-        if (dir.sqrMagnitude > 0.0001f)
-            transform.rotation = Quaternion.LookRotation(dir);
-    }
-
-    public void MoveToPlayer()
-    {
-        // GuardState 会停住 agent，追击前必须先恢复，否则设了 destination 也不会动
-        agent.isStopped = false;
-        agent.destination = attackTarget.transform.position;
-    }
-
-    public void ReturnToInit()
-    {
-        agent.isStopped = false;
-        agent.destination = initPosition;
-    }
-
-    /// <summary>是否已经回到出生点。</summary>
-    public bool HasArrivedAtInit()
-    {
-        // pathPending 期间 remainingDistance 不可信（可能是 0 或 Infinity）
-        if (agent.pathPending) return false;
-
-        // 双重判定：NavMesh 的到达距离 + 与出生点的实际距离
-        if (agent.remainingDistance > agent.stoppingDistance + 0.1f) return false;
-        return Vector3.Distance(transform.position, initPosition) <= agent.stoppingDistance + 0.3f;
-    }
-
-    /// <summary>站定：停住并清掉残余路径，避免回到岗位后还在微微滑动。</summary>
-    public void StopAgent()
-    {
-        agent.isStopped = true;
-        agent.ResetPath();
-    }
-
-    /// <summary>在出生点周围 patrolRadius 的圆内取一个能站的点。</summary>
-    public void GetNewWayPoint()
-    {
-        const int maxAttempts = 10;
-        // 采样半径至少 1 米：patrolRadius 为 0 时 maxDistance 也是 0，
-        // 而 maxDistance=0 几乎必然采样失败，会一直重试。
-        float sampleDistance = Mathf.Max(1f, patrolRadius);
-
-        for (int i = 0; i < maxAttempts; i++)
-        {
-            // 圆形范围：先取单位圆内的随机点，再按半径缩放
-            // （用 Random.Range 分别取 X/Z 得到的是方形范围）
-            Vector2 circle = Random.insideUnitCircle * patrolRadius;
-
-            Vector3 candidate = new Vector3(initPosition.x + circle.x,
-                                            initPosition.y,
-                                            initPosition.z + circle.y);
-
-            NavMeshHit hit;
-            // AllAreas：只传 1 的话只匹配 area id = 1 的网格，
-            // 烘焙时用了自定义 area 就会永远失败。
-            if (NavMesh.SamplePosition(candidate, out hit, sampleDistance, NavMesh.AllAreas))
-            {
-                curPatrolPoint = hit.position;      // 用吸附后的合法点，而不是原始随机点
-                return;
-            }
-        }
-
-        // 兜底：有限次尝试都失败就回出生点（出生点一定在 NavMesh 上），绝不递归
-        curPatrolPoint = initPosition;
-        Debug.LogWarning("[" + name + "] 连续 " + maxAttempts + " 次找不到可用的巡逻点，先回出生点", this);
-    }
-
-    public void MoveToPatrolPoint()
-    {
-        // GuardState 会停住 agent，出发前必须先恢复
-        agent.isStopped = false;
-
-        // 只有换点时才重新设置目的地，避免每帧重复寻路
-        if (agent.destination != curPatrolPoint)
-            agent.destination = curPatrolPoint;
-    }
-
-    /// <summary>是否已到达当前巡逻点。</summary>
-    public bool HasArrivedAtPatrolPoint()
-    {
-        if (agent.pathPending) return false;
-
-        // 用 NavMesh 的剩余距离判断：agent 会在 stoppingDistance 处停下，
-        // 用 transform 距离硬比 0.3 永远到不了（stoppingDistance 现在是 1）
-        return agent.remainingDistance <= agent.stoppingDistance + 0.2f;
+        get { return attackTarget != null ? attackTarget.transform.position : transform.position; }
     }
 
     /// <summary>
