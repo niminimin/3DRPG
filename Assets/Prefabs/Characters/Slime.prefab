@@ -202,8 +202,8 @@ GameObject:
   - component: {fileID: 9160225084468149665}
   - component: {fileID: 7392671216752248425}
   - component: {fileID: 3826184361460846800}
-  - component: {fileID: 4099368842315992517}
   - component: {fileID: 6834579660596840230}
+  - component: {fileID: 7731876700794221320}
   m_Layer: 7
   m_Name: Slime
   m_TagString: Enemy
@@ -271,24 +271,6 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
---- !u!114 &4099368842315992517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4239668271317880106}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62a48c44ad951584297eaedabfbcc157, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sightRadius: 8
-  animator: {fileID: 0}
-  patrolRadius: 4
-  patrolWaitTime: 1.5
-  curPatrolPoint: {x: 0, y: 0, z: 0}
-  initPosition: {x: 0, y: 0, z: 0}
 --- !u!65 &6834579660596840230
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -310,6 +292,28 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0.51, z: 0}
+--- !u!114 &7731876700794221320
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4239668271317880106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e316ca2c5af885a4ea1331cb96226e64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRadius: 8
+  animator: {fileID: 0}
+  patrolRadius: 4
+  patrolWaitTime: 1.5
+  curPatrolPoint: {x: 0, y: 0, z: 0}
+  attackExitBuffer: 0.5
+  initPosition: {x: 0, y: 0, z: 0}
+  initRotation: {x: 0, y: 0, z: 0, w: 0}
+  DestroyAfterDeath: 1
+  corpseKeepTime: 1
 --- !u!1 &6749180970912363648
 GameObject:
   m_ObjectHideFlags: 0

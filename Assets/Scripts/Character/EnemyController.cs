@@ -4,19 +4,19 @@ using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(NavMeshAgent))]
-public class EnemyController : MonoBehaviour
+public abstract class EnemyController : MonoBehaviour
 {
     [Header("感知")]
     public float sightRadius;
 
-    private NavMeshAgent agent;
-    private GameObject attackTarget;
+    protected NavMeshAgent agent;
+    protected GameObject attackTarget;
     public Animator animator;
-    private CharacterStats characterStats;
+    protected CharacterStats characterStats;
 
     // 攻击开始就算好、但等动画命中帧才结算的那一下
-    private DamageResult pendingDamage;
-    private bool hasPendingDamage;
+    protected DamageResult pendingDamage;
+    protected bool hasPendingDamage;
 
     [Header("巡逻")]
     public float patrolRadius;
@@ -39,7 +39,7 @@ public class EnemyController : MonoBehaviour
     [HideInInspector] public Quaternion initRotation;
 
     // 状态机相关
-    private BaseState curEnemyState;
+    protected BaseState curEnemyState;
     public BaseState guardState;
     public BaseState patrolState;
     public BaseState chaseState;
@@ -47,6 +47,14 @@ public class EnemyController : MonoBehaviour
     public BaseState returnState;
     public BaseState deadState;
     public BaseState celebrateState;
+
+    #region 子类必须实现的定制点
+    /// <summary>出生时进入的状态：巡逻型 = PATROL，守卫型 = GUARD。</summary>
+    protected abstract EnemyState InitialState { get; }
+
+    /// <summary>脱战回位后进入的状态（ReturnState 会读它）：巡逻型回巡逻，守卫型回站岗。</summary>
+    public abstract EnemyState StateAfterReturn { get; }
+    #endregion
 
     #region ReadFromSO
     /// <summary>角色数值（从 AttackDataSO 读攻击距离/冷却/伤害）。</summary>
@@ -83,7 +91,7 @@ public class EnemyController : MonoBehaviour
     }
     #endregion
 
-    private void Awake()
+    protected virtual void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
@@ -101,7 +109,13 @@ public class EnemyController : MonoBehaviour
         curPatrolPoint = transform.position;
         initRotation = transform.rotation;
 
-        curEnemyState = patrolState;
+        // 初始状态由子类决定（巡逻型 = PATROL，守卫型 = GUARD）
+        curEnemyState = GetState(InitialState);
+        if (curEnemyState == null)
+        {
+            Debug.LogError("[" + name + "] 初始状态 " + InitialState + " 无法使用，退回巡逻", this);
+            curEnemyState = patrolState;
+        }
         curEnemyState.OnEnter(this);
 
         if (AttackRange <= 0f)
@@ -114,7 +128,7 @@ public class EnemyController : MonoBehaviour
     }
 
     // 死亡/受击是"跨状态"事件：由控制器统一订阅，各状态不需要自己判断血量
-    private void OnEnable()
+    protected virtual void OnEnable()
     {
         if (characterStats != null)
         {
@@ -124,7 +138,7 @@ public class EnemyController : MonoBehaviour
     }
 
     // 玩家死亡是全局事件，由 GameManager 广播；用 Start 订阅，保证 GameManager 已完成 Awake
-    private void Start()
+    protected virtual void Start()
     {
         if (GameManager.instance != null)
             GameManager.instance.OnPlayerDied += HandlePlayerDied;
@@ -132,7 +146,7 @@ public class EnemyController : MonoBehaviour
             Debug.LogWarning("[" + name + "] 场景里没有 GameManager，玩家死亡后不会庆祝", this);
     }
 
-    private void OnDisable()
+    protected virtual void OnDisable()
     {
         if (characterStats != null)
         {
@@ -171,38 +185,11 @@ public class EnemyController : MonoBehaviour
     {
         if (curEnemyState == deadState) return;     // 死亡后不再接受任何切换
 
-        BaseState next = null;
-        switch (state)
-        {
-            case EnemyState.GUARD:
-                next = guardState;
-                break;
-            case EnemyState.PATROL:
-                next = patrolState;
-                break;
-            case EnemyState.CHASE:
-                next = chaseState;
-                break;
-            case EnemyState.ATTACK:
-                next = attackState;
-                break;
-            case EnemyState.RETURN:
-                next = returnState;
-                break;
-            case EnemyState.DEAD:
-                next = deadState;
-                break;
-            case EnemyState.CELEBRATE:
-                next = celebrateState;
-                break;
-            default:
-                Debug.LogError("[" + name + "] 状态 " + state + " 尚未接入状态机");
-                return;
-        }
+        BaseState next = GetState(state);
 
         if (next == null)
         {
-            Debug.LogError("[" + name + "] 状态 " + state + " 未初始化");
+            Debug.LogError("[" + name + "] 状态 " + state + " 尚未接入状态机");
             return;
         }
 
@@ -211,6 +198,22 @@ public class EnemyController : MonoBehaviour
         curEnemyState.OnExit();
         curEnemyState = next;
         curEnemyState.OnEnter(this);
+    }
+
+    /// <summary>把枚举映射成状态实例；未接入的状态返回 null。</summary>
+    protected BaseState GetState(EnemyState state)
+    {
+        switch (state)
+        {
+            case EnemyState.GUARD: return guardState;
+            case EnemyState.PATROL: return patrolState;
+            case EnemyState.CHASE: return chaseState;
+            case EnemyState.ATTACK: return attackState;
+            case EnemyState.RETURN: return returnState;
+            case EnemyState.DEAD: return deadState;
+            case EnemyState.CELEBRATE: return celebrateState;
+            default: return null;
+        }
     }
 
     public bool FoundPlayer()

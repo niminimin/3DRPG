@@ -10,7 +10,8 @@ public class ReturnState : BaseState
         // agent 会在 stoppingDistance 之外就停下，position 几乎不可能与出生点完全相等。
         if (enemy.HasArrivedAtInit())
         {
-            enemy.SwitchState(EnemyState.GUARD);
+            // 回位后去哪由敌人类型决定：巡逻型回 GUARD，巡逻型敌人可重写为 PATROL
+            enemy.SwitchState(enemy.StateAfterReturn);
             return;
         }
     }
