@@ -285,25 +285,37 @@ public class EnemyController : MonoBehaviour
         agent.ResetPath();
     }
 
-    /// <summary>在出生点周围 patrolRadius 的圆内取一个巡逻点。</summary>
+    /// <summary>在出生点周围 patrolRadius 的圆内取一个能站的点。</summary>
     public void GetNewWayPoint()
     {
-        // 圆形范围：先取单位圆内的随机点，再按半径缩放
-        // （用 Random.Range 分别取 X/Z 得到的是方形范围）
-        Vector2 circle = Random.insideUnitCircle * patrolRadius;
+        const int maxAttempts = 10;
+        // 采样半径至少 1 米：patrolRadius 为 0 时 maxDistance 也是 0，
+        // 而 maxDistance=0 几乎必然采样失败，会一直重试。
+        float sampleDistance = Mathf.Max(1f, patrolRadius);
 
-        Vector3 randomPoint = new Vector3(initPosition.x + circle.x,
-                                          initPosition.y,
-                                          initPosition.z + circle.y);
-
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(randomPoint, out hit, patrolRadius, 1))
+        for (int i = 0; i < maxAttempts; i++)
         {
-            curPatrolPoint = hit.position;
-            return;
+            // 圆形范围：先取单位圆内的随机点，再按半径缩放
+            // （用 Random.Range 分别取 X/Z 得到的是方形范围）
+            Vector2 circle = Random.insideUnitCircle * patrolRadius;
+
+            Vector3 candidate = new Vector3(initPosition.x + circle.x,
+                                            initPosition.y,
+                                            initPosition.z + circle.y);
+
+            NavMeshHit hit;
+            // AllAreas：只传 1 的话只匹配 area id = 1 的网格，
+            // 烘焙时用了自定义 area 就会永远失败。
+            if (NavMesh.SamplePosition(candidate, out hit, sampleDistance, NavMesh.AllAreas))
+            {
+                curPatrolPoint = hit.position;      // 用吸附后的合法点，而不是原始随机点
+                return;
+            }
         }
 
-        GetNewWayPoint();
+        // 兜底：有限次尝试都失败就回出生点（出生点一定在 NavMesh 上），绝不递归
+        curPatrolPoint = initPosition;
+        Debug.LogWarning("[" + name + "] 连续 " + maxAttempts + " 次找不到可用的巡逻点，先回出生点", this);
     }
 
     public void MoveToPatrolPoint()
