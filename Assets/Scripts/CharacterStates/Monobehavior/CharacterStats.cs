@@ -12,8 +12,20 @@ public class CharacterStats : MonoBehaviour
     private int curHealth;
     private int curDefence;
 
+    // 死亡标记：保证 OnDead 只触发一次，同时死后不再结算伤害
+    private bool isDead;
+
+    /// <summary>是否已经死亡。</summary>
+    public bool IsDead
+    {
+        get { return isDead; }
+    }
+
     /// <summary>血量变化时通知（参数为当前血量），UI 血条等外部系统订阅用。</summary>
     public event System.Action<int> OnHealthChanged;
+
+    /// <summary>受到伤害时通知（携带本次伤害结果），受击表现等订阅用。</summary>
+    public event System.Action<DamageResult> OnDamaged;
 
     /// <summary>血量归零时通知一次，死亡状态/掉落等订阅用。</summary>
     public event System.Action OnDead;
@@ -26,6 +38,8 @@ public class CharacterStats : MonoBehaviour
     /// <summary>把运行时状态恢复成模板值（初始满血、防御回到基础值）。</summary>
     public void ResetCurStats()
     {
+        isDead = false;
+
         if (characterData == null)
         {
             curHealth = 0;
@@ -137,7 +151,7 @@ public class CharacterStats : MonoBehaviour
     /// <summary>防御方：扣血并广播事件。</summary>
     public void TakeDamage(DamageResult result)
     {
-        if (result.amount <= 0) return;
+        if (result.amount <= 0 || isDead) return;       // 已经死了就不再吃伤害
 
         CurHealth = Mathf.Max(CurHealth - result.amount, 0);
 
@@ -146,7 +160,17 @@ public class CharacterStats : MonoBehaviour
                   + "，剩余 " + CurHealth + "/" + MaxHealth);
 
         if (OnHealthChanged != null) OnHealthChanged(CurHealth);
-        if (CurHealth <= 0 && OnDead != null) OnDead();
+
+        // 致死的一击：直接走死亡流程，不再播受击表现（避免和死亡动画抢）
+        if (CurHealth <= 0)
+        {
+            isDead = true;
+            if (OnDead != null) OnDead();
+            return;
+        }
+
+        // 还活着才通知受击（暴击与否由订阅方决定播不播）
+        if (OnDamaged != null) OnDamaged(result);
     }
     #endregion
 }

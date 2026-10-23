@@ -36,6 +36,7 @@ public class EnemyController : MonoBehaviour
     // 存 Transform 的话 initTrans.position 永远等于"敌人当前位置"，回位逻辑会原地打转。
     // 运行时由 Awake 自动写入，不需要在 Inspector 里配。
     [HideInInspector] public Vector3 initPosition;
+    [HideInInspector] public Quaternion initRotation;
 
     // 状态机相关
     private BaseState curEnemyState;
@@ -44,6 +45,8 @@ public class EnemyController : MonoBehaviour
     public BaseState chaseState;
     public BaseState attackState;
     public BaseState returnState;
+    public BaseState deadState;
+    public BaseState celebrateState;
 
     #region ReadFromSO
     /// <summary>角色数值（从 AttackDataSO 读攻击距离/冷却/伤害）。</summary>
@@ -91,9 +94,12 @@ public class EnemyController : MonoBehaviour
         patrolState = new PatrolState();
         attackState = new AttackState();
         returnState = new ReturnState();
+        deadState = new DeadState();
+        celebrateState = new CelebrateState();
 
         initPosition = transform.position;
         curPatrolPoint = transform.position;
+        initRotation = transform.rotation;
 
         curEnemyState = patrolState;
         curEnemyState.OnEnter(this);
@@ -107,8 +113,64 @@ public class EnemyController : MonoBehaviour
         curEnemyState.LogicUpdata();
     }
 
+    // 死亡/受击是"跨状态"事件：由控制器统一订阅，各状态不需要自己判断血量
+    private void OnEnable()
+    {
+        if (characterStats != null)
+        {
+            characterStats.OnDead += HandleDeath;
+            characterStats.OnDamaged += HandleDamaged;
+        }
+    }
+
+    // 玩家死亡是全局事件，由 GameManager 广播；用 Start 订阅，保证 GameManager 已完成 Awake
+    private void Start()
+    {
+        if (GameManager.instance != null)
+            GameManager.instance.OnPlayerDied += HandlePlayerDied;
+        else
+            Debug.LogWarning("[" + name + "] 场景里没有 GameManager，玩家死亡后不会庆祝", this);
+    }
+
+    private void OnDisable()
+    {
+        if (characterStats != null)
+        {
+            characterStats.OnDead -= HandleDeath;
+            characterStats.OnDamaged -= HandleDamaged;
+        }
+
+        if (GameManager.instance != null)
+            GameManager.instance.OnPlayerDied -= HandlePlayerDied;
+    }
+
+    private void HandleDeath()
+    {
+        CancelPendingAttack();              // 还没命中的这一刀作废
+        SwitchState(EnemyState.DEAD);       // 唯一入口
+    }
+
+    /// <summary>玩家死亡：切到庆祝状态（已经死了的敌人不庆祝）。</summary>
+    private void HandlePlayerDied()
+    {
+        if (characterStats != null && characterStats.IsDead) return;
+
+        SwitchState(EnemyState.CELEBRATE);
+    }
+
+    /// <summary>受击表现：只有暴击才播受击动画（致死的那一下交给死亡动画）。</summary>
+    private void HandleDamaged(DamageResult result)
+    {
+        if (!result.isCritical) return;
+        if (characterStats.IsDead) return;
+
+        animator.SetTrigger("Hit");
+    }
+
     public void SwitchState(EnemyState state)
     {
+        if (curEnemyState == deadState) return;     // 死亡后不再接受任何切换
+
         BaseState next = null;
         switch (state)
         {
@@ -126,6 +188,12 @@ public class EnemyController : MonoBehaviour
                 break;
             case EnemyState.RETURN:
                 next = returnState;
+                break;
+            case EnemyState.DEAD:
+                next = deadState;
+                break;
+            case EnemyState.CELEBRATE:
+                next = celebrateState;
                 break;
             default:
                 Debug.LogError("[" + name + "] 状态 " + state + " 尚未接入状态机");
@@ -151,11 +219,14 @@ public class EnemyController : MonoBehaviour
 
         foreach (var target in colliders)
         {
-            if (target.CompareTag("Player"))
-            {
-                attackTarget = target.gameObject;
-                return true;
-            }
+            if (!target.CompareTag("Player")) continue;
+
+            // 玩家已经死了就不再追着打
+            CharacterStats targetStats = target.GetComponent<CharacterStats>();
+            if (targetStats != null && targetStats.IsDead) return false;
+
+            attackTarget = target.gameObject;
+            return true;
         }
         return false;
     }
@@ -285,10 +356,12 @@ public class EnemyController : MonoBehaviour
         if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
         hasPendingDamage = false;           // 一次攻击只结算一次
 
+        if (characterStats != null && characterStats.IsDead) return;   // 自己已经死了
+
         if (attackTarget == null) return;
 
         CharacterStats targetStats = attackTarget.GetComponent<CharacterStats>();
-        if (targetStats == null) return;
+        if (targetStats == null || targetStats.IsDead) return;
 
         // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
         if (DistanceToPlayer() > AttackRange) return;
@@ -301,4 +374,26 @@ public class EnemyController : MonoBehaviour
     {
         hasPendingDamage = false;
     }
+
+    /// <summary>
+    /// 【动画事件】死亡动画最后一帧调用：等尸体保留一段时间后销毁敌人。
+    /// 在 Die clip 的最后一帧 Add Animation Event，函数名填 OnDeathAnimationEnd。
+    /// </summary>
+    public void OnDeathAnimationEnd()
+    {
+        // 防御：只有真的死了才销毁，避免事件被误配到别的 clip 上
+        if (characterStats != null && !characterStats.IsDead) return;
+
+        if (!DestroyAfterDeath) return;
+
+        Debug.Log("[" + name + "] 死亡动画结束，尸体保留 " + corpseKeepTime + " 秒后销毁");
+        Destroy(gameObject, corpseKeepTime);   // 延迟销毁：尸体先留在场景里
+    }
+
+    [Header("死亡")]
+    [Tooltip("死亡动画播完后是否销毁自己；以后要做对象池就关掉这个开关")]
+    public bool DestroyAfterDeath = true;
+
+    [Tooltip("死亡动画播完后，尸体保留多久再销毁（秒）")]
+    public float corpseKeepTime = 1f;
 }

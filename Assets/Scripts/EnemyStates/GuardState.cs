@@ -9,7 +9,9 @@ public class GuardState : BaseState
         if (enemy.FoundPlayer())
         {
             enemy.SwitchState(EnemyState.CHASE);
+            return;
         }
+        enemy.transform.rotation = Quaternion.Lerp(enemy.transform.rotation, enemy.initRotation, 0.1f);
     }
 
     public override void OnEnter(EnemyController target)

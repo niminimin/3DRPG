@@ -5,26 +5,17 @@ using UnityEngine;
 using UnityEngine.Events;
 
 
-public class MouseManager : MonoBehaviour
+public class MouseManager : Singleton<MouseManager>
 {
-    public static MouseManager instance;
     public RaycastHit hitInfo;
     public event Action<Vector3> OnMouseClicked;
     public event Action<GameObject> OnEnemyClicked;
 
-
     public Texture2D point, doorway, attack, target, arrow;
 
-    private void Awake()
+    protected override void Awake()
     {
-        if(instance != null)
-        {
-            Destroy(gameObject);
-        }
-        else
-        {
-            instance = this;
-        }
+        base.Awake();       // ★ 必须调用：负责赋值 instance / 处理重复实例
     }
 
     private void Update()

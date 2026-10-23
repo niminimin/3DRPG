@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
     private GameObject attackTarget;
     private CharacterStats characterStats;
+    private CharacterStats targetStats;      // 当前攻击目标的数值组件（缓存，避免每帧 GetComponent）
 
     // 攻击开始就算好、但等动画命中帧才结算的那一下
     private DamageResult pendingDamage;
@@ -74,16 +75,72 @@ public class PlayerController : MonoBehaviour
         MouseManager.instance.OnEnemyClicked += AttackEvent;
     }
 
+    // 受击 / 死亡表现：由 CharacterStats 的事件驱动
+    private void OnEnable()
+    {
+        if (characterStats != null)
+        {
+            characterStats.OnDamaged += HandleDamaged;
+            characterStats.OnDead += HandleDeath;
+        }
+    }
+
     private void OnDisable()
     {
+        if (characterStats != null)
+        {
+            characterStats.OnDamaged -= HandleDamaged;
+            characterStats.OnDead -= HandleDeath;
+        }
+
         if (MouseManager.instance == null) return;      // 退出 Play 时它可能已经被销毁
 
         MouseManager.instance.OnMouseClicked -= MoveToPosition;
         MouseManager.instance.OnEnemyClicked -= AttackEvent;
     }
 
+    /// <summary>受击表现：只有暴击才播受击动画（致死的那一下交给死亡表现）。</summary>
+    private void HandleDamaged(DamageResult result)
+    {
+        if (!result.isCritical) return;
+        if (characterStats.IsDead) return;
+
+        animator.SetTrigger("Hit");
+    }
+
+    /// <summary>死亡：停住、播死亡动画、断开输入（玩家没有状态机，所以统一在这里收尾）。</summary>
+    private void HandleDeath()
+    {
+        Debug.Log("[" + name + "] 死亡");
+
+        StopAllCoroutines();
+        CancelPendingAttack();
+        attackTarget = null;
+        targetStats = null;
+
+        // 停住移动
+        agent.isStopped = true;
+        agent.ResetPath();
+
+        // 播死亡动画（Player.controller: AnyState -> Die，条件 IsDead）
+        animator.SetBool("IsDead", true);
+
+        // 死后不再响应鼠标
+        if (MouseManager.instance != null)
+        {
+            MouseManager.instance.OnMouseClicked -= MoveToPosition;
+            MouseManager.instance.OnEnemyClicked -= AttackEvent;
+        }
+
+        // 尸体不再被敌人选中/点击
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+    }
+
     private void Update()
     {
+        if (characterStats != null && characterStats.IsDead) return;   // 死后不再更新移动动画
+
         SwitchAnimation();
     }
 
@@ -94,9 +151,12 @@ public class PlayerController : MonoBehaviour
 
     public void MoveToPosition(Vector3 target)
     {
+        if (characterStats != null && characterStats.IsDead) return;   // 死了不再响应移动
+
         StopAllCoroutines();        // 取消正在进行的追击 / 攻击
         CancelPendingAttack();      // 挥砍未命中就取消，避免点地面后还结算伤害
         attackTarget = null;
+        targetStats = null;
         agent.isStopped = false;
         agent.destination = target;
     }
@@ -104,17 +164,19 @@ public class PlayerController : MonoBehaviour
     private void AttackEvent(GameObject target)
     {
         if (target == null) return;
+        if (characterStats != null && characterStats.IsDead) return;   // 死了不再攻击
 
         // 反复点同一个敌人时，先停掉上一轮，避免叠出多条协程 -> 攻击频率翻倍
         StopAllCoroutines();
         CancelPendingAttack();      // 换目标时丢弃上一刀未命中的结算
         attackTarget = target;
+        targetStats = target.GetComponent<CharacterStats>();
         StartCoroutine(MoveToAttackTarget());
     }
 
     /// <summary>
     /// 追到攻击范围内就站定循环攻击；目标逃跑会重新进入追击；
-    /// 目标被销毁、或玩家点了地面（MoveToPosition 里 StopAllCoroutines）时结束。
+    /// 目标被销毁/死亡、或玩家点了地面（MoveToPosition 里 StopAllCoroutines）时结束。
     /// </summary>
     private IEnumerator MoveToAttackTarget()
     {
@@ -123,7 +185,13 @@ public class PlayerController : MonoBehaviour
 
         while (true)
         {
-            if (attackTarget == null) yield break;      // 目标已被销毁
+            if (attackTarget == null) yield break;              // 目标已被销毁
+            if (targetStats != null && targetStats.IsDead)      // 目标已死亡，停止鞭尸
+            {
+                attackTarget = null;
+                targetStats = null;
+                yield break;
+            }
 
             float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
 
@@ -155,8 +223,6 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void BeginAttack()
     {
-        CharacterStats targetStats = attackTarget != null ? attackTarget.GetComponent<CharacterStats>() : null;
-
         if (Stats == null || targetStats == null)
         {
             hasPendingDamage = false;
@@ -179,10 +245,9 @@ public class PlayerController : MonoBehaviour
         if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
         hasPendingDamage = false;           // 一次挥砍只结算一次
 
-        if (attackTarget == null) return;
-
-        CharacterStats targetStats = attackTarget.GetComponent<CharacterStats>();
-        if (targetStats == null) return;
+        if (Stats != null && Stats.IsDead) return;                  // 自己已经死了
+        if (attackTarget == null || targetStats == null) return;
+        if (targetStats.IsDead) return;                             // 目标已经死了
 
         // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
         if (Vector3.Distance(transform.position, attackTarget.transform.position) > AttackRange) return;
