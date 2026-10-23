@@ -205,6 +205,9 @@ GameObject:
   - component: {fileID: 6834579660596840230}
   - component: {fileID: 7731876700794221320}
   - component: {fileID: 52092310800417921}
+  - component: {fileID: 7633441309517723598}
+  - component: {fileID: 5691122283461323386}
+  - component: {fileID: 5587625672899810121}
   m_Layer: 7
   m_Name: Slime
   m_TagString: Enemy
@@ -305,12 +308,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e316ca2c5af885a4ea1331cb96226e64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sightRadius: 8
   animator: {fileID: 0}
   patrolRadius: 4
   patrolWaitTime: 1.5
   curPatrolPoint: {x: 0, y: 0, z: 0}
-  attackExitBuffer: 0.5
   initPosition: {x: 0, y: 0, z: 0}
   initRotation: {x: 0, y: 0, z: 0, w: 0}
   DestroyAfterDeath: 1
@@ -327,6 +328,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: befa1d56849cf644d84f2705b9eecb56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &7633441309517723598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4239668271317880106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c34ab77ce970f44a9f7cfca12b539f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sightRadius: 8
+--- !u!114 &5691122283461323386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4239668271317880106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6826f65729390546ae01bec8fcbfd32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  characterData: {fileID: 11400000, guid: 08afa53a6f4317d4a95c1131f82d33d4, type: 2}
+  attackData: {fileID: 11400000, guid: fb49e1824ab664c478db1f87cb5f33da, type: 2}
+--- !u!114 &5587625672899810121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4239668271317880106}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6e86370eba5c5c4da0b158a9331bd15, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackExitBuffer: 0.5
 --- !u!1 &6749180970912363648
 GameObject:
   m_ObjectHideFlags: 0

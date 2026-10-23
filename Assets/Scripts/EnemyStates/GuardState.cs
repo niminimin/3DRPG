@@ -6,12 +6,12 @@ public class GuardState : BaseState
 {
     public override void LogicUpdata()
     {
-        if (enemy.FoundPlayer())
+        if (enemy.Perception.CanSeePlayer())
         {
             enemy.SwitchState(EnemyState.CHASE);
             return;
         }
-        enemy.transform.rotation = Quaternion.Lerp(enemy.transform.rotation, enemy.initRotation, 0.1f);
+        enemy.transform.rotation = Quaternion.Lerp(enemy.transform.rotation, enemy.Locomotion.HomeRotation, 0.1f);
     }
 
     public override void OnEnter(EnemyController target)

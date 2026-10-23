@@ -19,7 +19,7 @@ public class ReturnState : BaseState
     public override void OnEnter(EnemyController target)
     {
         enemy = target;
-        enemy.Locomotion.MoveTo(enemy.initPosition);   // 进入状态就出发
+        enemy.Locomotion.MoveTo(enemy.Locomotion.HomePosition);   // 进入状态就出发
         enemy.animator.SetBool("IsWalk", true);
     }
 

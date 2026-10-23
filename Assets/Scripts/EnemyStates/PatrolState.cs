@@ -14,7 +14,7 @@ public class PatrolState : BaseState
 
     public override void LogicUpdata()
     {
-        if (enemy.FoundPlayer())
+        if (enemy.Perception.CanSeePlayer())
         {
             enemy.SwitchState(EnemyState.CHASE);
             return;                                 // 切换后立刻返回，别用旧状态继续改新状态
@@ -55,7 +55,7 @@ public class PatrolState : BaseState
     /// <summary>取一个新巡逻点并立刻出发（否则下一帧又会被判定为"已到达"）。</summary>
     private void PickNewPatrolPoint()
     {
-        enemy.curPatrolPoint = enemy.Locomotion.SamplePointAround(enemy.initPosition, enemy.patrolRadius);
+        enemy.curPatrolPoint = enemy.Locomotion.SamplePointAround(enemy.Locomotion.HomePosition, enemy.patrolRadius);
         enemy.Locomotion.MoveTo(enemy.curPatrolPoint);
     }
 

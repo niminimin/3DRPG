@@ -6,21 +6,21 @@ public class ChaseState : BaseState
 {
     public override void LogicUpdata()
     {
-        if (!enemy.FoundPlayer())
+        if (!enemy.Perception.CanSeePlayer())
         {
             enemy.SwitchState(EnemyState.RETURN);
             return;
         }
 
         // 攻击距离来自 AttackDataSO；没配数据（<= 0）时不会进入攻击状态
-        float attackRange = enemy.AttackRange;
-        if (attackRange > 0f && enemy.DistanceToPlayer() <= attackRange)
+        float attackRange = enemy.Combat.AttackRange;
+        if (attackRange > 0f && enemy.Perception.DistanceToTarget() <= attackRange)
         {
             enemy.SwitchState(EnemyState.ATTACK);
             return;
         }
 
-        enemy.Locomotion.MoveTo(enemy.TargetPosition);
+        enemy.Locomotion.MoveTo(enemy.Perception.TargetPosition);
     }
 
     public override void OnEnter(EnemyController target)

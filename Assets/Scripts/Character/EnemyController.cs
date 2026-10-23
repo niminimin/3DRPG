@@ -6,19 +6,17 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public abstract class EnemyController : MonoBehaviour
 {
-    [Header("感知")]
-    public float sightRadius;
-
-    /// <summary>移动能力（NavMeshAgent 的封装），由 Awake 自动挂载。</summary>
+    /// <summary>移动能力（NavMeshAgent 的封装）。缺失时 Awake 会自动挂载。</summary>
     public EnemyLocomotion Locomotion { get; private set; }
 
-    protected GameObject attackTarget;
+    /// <summary>感知能力：视野内找玩家、记住目标。</summary>
+    public EnemyPerception Perception { get; private set; }
+
+    /// <summary>战斗能力：攻击、命中帧结算。</summary>
+    public EnemyCombat Combat { get; private set; }
+
     public Animator animator;
     protected CharacterStats characterStats;
-
-    // 攻击开始就算好、但等动画命中帧才结算的那一下
-    protected DamageResult pendingDamage;
-    protected bool hasPendingDamage;
 
     [Header("巡逻")]
     public float patrolRadius;
@@ -27,12 +25,6 @@ public abstract class EnemyController : MonoBehaviour
     public float patrolWaitTime = 1.5f;
 
     public Vector3 curPatrolPoint;
-
-    [Header("攻击")]
-    [Tooltip("离开攻击距离时的额外余量：退出攻击的距离 = AttackRange + 这个值，避免在边界反复切状态")]
-    public float attackExitBuffer = 0.5f;
-
-    // 攻击距离 / 冷却 / 伤害都来自 AttackDataSO（经 CharacterStats 读出），不在这里写死
 
     // 出生点快照：必须存 Vector3 的值，不能存 Transform 引用。
     // 存 Transform 的话 initTrans.position 永远等于"敌人当前位置"，回位逻辑会原地打转。
@@ -58,41 +50,15 @@ public abstract class EnemyController : MonoBehaviour
     public abstract EnemyState StateAfterReturn { get; }
     #endregion
 
-    #region ReadFromSO
-    /// <summary>角色数值（从 AttackDataSO 读攻击距离/冷却/伤害）。</summary>
-    public CharacterStats Stats
-    {
-        get { return characterStats; }
-    }
-
-    /// <summary>攻击距离：来自 AttackDataSO。没配数据时为 0，表示不会进入攻击状态。</summary>
-    public float AttackRange
-    {
-        get { return characterStats == null ? 0f : characterStats.AttackRange; }
-    }
-
-    /// <summary>攻击冷却：来自 AttackDataSO。下限 0.1 秒，防止数据缺失时每帧“出手”。</summary>
-    public float AttackCoolDown
-    {
-        get { return characterStats == null ? 0.1f : Mathf.Max(0.1f, characterStats.CoolDown); }
-    }
-
-    /// <summary>退出攻击状态的距离：攻击距离 + 余量（滞回，避免在边界来回切）。</summary>
-    public float AttackExitRange
-    {
-        get { return AttackRange + attackExitBuffer; }
-    }
-    #endregion
-
     protected virtual void Awake()
     {
         animator = GetComponent<Animator>();
         characterStats = GetComponent<CharacterStats>();
 
-        // 移动能力组件：场景/预制体上没挂就自动补一个，保证老资产也能跑
-        Locomotion = GetComponent<EnemyLocomotion>();
-        if (Locomotion == null)
-            Locomotion = gameObject.AddComponent<EnemyLocomotion>();
+        // 能力组件：场景/预制体上没挂就自动补，保证老资产也能跑
+        Locomotion = EnsureComponent<EnemyLocomotion>();
+        Perception = EnsureComponent<EnemyPerception>();
+        Combat = EnsureComponent<EnemyCombat>();
 
         guardState = new GuardState();
         chaseState = new ChaseState();
@@ -108,6 +74,7 @@ public abstract class EnemyController : MonoBehaviour
 
         // 出生点快照同步给移动组件，两边用同一份数据
         Locomotion.SetHome(initPosition, initRotation);
+
         // 初始状态由子类决定（巡逻型 = PATROL，守卫型 = GUARD）
         curEnemyState = GetState(InitialState);
         if (curEnemyState == null)
@@ -116,9 +83,14 @@ public abstract class EnemyController : MonoBehaviour
             curEnemyState = patrolState;
         }
         curEnemyState.OnEnter(this);
+    }
 
-        if (AttackRange <= 0f)
-            Debug.LogWarning("[" + name + "] 没有配置 AttackDataSO（或 attackRange <= 0），该敌人不会攻击", this);
+    /// <summary>取组件；没有就自动补一个。</summary>
+    private T EnsureComponent<T>() where T : Component
+    {
+        T comp = GetComponent<T>();
+        if (comp == null) comp = gameObject.AddComponent<T>();
+        return comp;
     }
 
     private void Update()
@@ -159,7 +131,7 @@ public abstract class EnemyController : MonoBehaviour
 
     private void HandleDeath()
     {
-        CancelPendingAttack();              // 还没命中的这一刀作废
+        Combat.CancelPendingAttack();       // 还没命中的这一刀作废
         SwitchState(EnemyState.DEAD);       // 唯一入口
     }
 
@@ -175,7 +147,7 @@ public abstract class EnemyController : MonoBehaviour
     private void HandleDamaged(DamageResult result)
     {
         if (!result.isCritical) return;
-        if (characterStats.IsDead) return;
+        if (characterStats != null && characterStats.IsDead) return;
 
         animator.SetTrigger("Hit");
     }
@@ -213,91 +185,6 @@ public abstract class EnemyController : MonoBehaviour
             case EnemyState.CELEBRATE: return celebrateState;
             default: return null;
         }
-    }
-
-    public bool FoundPlayer()
-    {
-        var colliders = Physics.OverlapSphere(transform.position, sightRadius);
-
-        foreach (var target in colliders)
-        {
-            if (!target.CompareTag("Player")) continue;
-
-            // 玩家已经死了就不再追着打
-            CharacterStats targetStats = target.GetComponent<CharacterStats>();
-            if (targetStats != null && targetStats.IsDead) return false;
-
-            attackTarget = target.gameObject;
-            return true;
-        }
-        return false;
-    }
-
-    /// <summary>到玩家的水平距离；没有目标时返回极大值。</summary>
-    public float DistanceToPlayer()
-    {
-        if (attackTarget == null) return float.MaxValue;
-
-        Vector3 self = transform.position;
-        Vector3 player = attackTarget.transform.position;
-        self.y = 0f;
-        player.y = 0f;
-        return Vector3.Distance(self, player);
-    }
-
-    /// <summary>当前目标的世界坐标；没有目标时返回自己的位置（移动/转向会变成原地不动）。</summary>
-    public Vector3 TargetPosition
-    {
-        get { return attackTarget != null ? attackTarget.transform.position : transform.position; }
-    }
-
-    /// <summary>
-    /// 攻击开始（由 AttackState 按冷却调用）：决定是否暴击（要选 clip）+ 播放动画 + 暂存结果。
-    /// 真正的伤害在动画事件 <see cref="OnAttackHit"/> 里结算。
-    /// </summary>
-    public void Attack()
-    {
-        CharacterStats targetStats = attackTarget != null ? attackTarget.GetComponent<CharacterStats>() : null;
-
-        if (Stats == null || targetStats == null)
-        {
-            hasPendingDamage = false;
-            animator.SetTrigger("Attack");      // 缺数值组件时只做表现，不结算
-            return;
-        }
-
-        pendingDamage = Stats.CalculateDamage(targetStats);
-        hasPendingDamage = true;
-
-        animator.SetTrigger(pendingDamage.isCritical ? "CriticalAttack" : "Attack");
-    }
-
-    /// <summary>
-    /// 【动画事件】攻击动作打到目标的那一帧调用（在 clip 上 Add Animation Event，函数名填 OnAttackHit）。
-    /// 每个攻击 clip（Attack01/Attack02/CriticalAttack…）都要加同名的这个事件。
-    /// </summary>
-    public void OnAttackHit()
-    {
-        if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
-        hasPendingDamage = false;           // 一次攻击只结算一次
-
-        if (characterStats != null && characterStats.IsDead) return;   // 自己已经死了
-
-        if (attackTarget == null) return;
-
-        CharacterStats targetStats = attackTarget.GetComponent<CharacterStats>();
-        if (targetStats == null || targetStats.IsDead) return;
-
-        // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
-        if (DistanceToPlayer() > AttackRange) return;
-
-        targetStats.TakeDamage(pendingDamage);
-    }
-
-    /// <summary>取消尚未命中的这一下（离开攻击状态、被硬直打断时调用）。</summary>
-    public void CancelPendingAttack()
-    {
-        hasPendingDamage = false;
     }
 
     /// <summary>
