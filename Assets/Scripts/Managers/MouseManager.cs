@@ -11,6 +11,9 @@ public class MouseManager : Singleton<MouseManager>
     public event Action<Vector3> OnMouseClicked;
     public event Action<GameObject> OnEnemyClicked;
 
+    /// <summary>点击"可打回的石头"（tag = Rock）</summary>
+    public event Action<GameObject> OnRockClicked;
+
     public Texture2D point, doorway, attack, target, arrow;
 
     protected override void Awake()
@@ -37,6 +40,7 @@ public class MouseManager : Singleton<MouseManager>
                     Cursor.SetCursor(target, new Vector2(16, 16), CursorMode.Auto);
                     break;
                 case "Enemy":
+                case "Rock":                // 石头也能打，用同一个攻击光标
                     Cursor.SetCursor(attack, new Vector2(16, 16), CursorMode.Auto);
                     break;
             }
@@ -54,6 +58,10 @@ public class MouseManager : Singleton<MouseManager>
             else if (hitInfo.collider.gameObject.CompareTag("Enemy"))
             {
                 OnEnemyClicked?.Invoke(hitInfo.collider.gameObject);
+            }
+            else if (hitInfo.collider.gameObject.CompareTag("Rock"))
+            {
+                OnRockClicked?.Invoke(hitInfo.collider.gameObject);
             }
         } 
     }

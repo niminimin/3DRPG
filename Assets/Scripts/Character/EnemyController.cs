@@ -80,13 +80,13 @@ public abstract class EnemyController : MonoBehaviour
         Perception = EnsureComponent<EnemyPerception>();
         Combat = EnsureComponent<EnemyCombat>();
 
-        guardState = new GuardState();
-        chaseState = new ChaseState();
-        patrolState = new PatrolState();
-        attackState = new AttackState();
-        returnState = new ReturnState();
-        deadState = new DeadState();
-        celebrateState = new CelebrateState();
+        guardState = CreateGuardState();
+        chaseState = CreateChaseState();
+        patrolState = CreatePatrolState();
+        attackState = CreateAttackState();
+        returnState = CreateReturnState();
+        deadState = CreateDeadState();
+        celebrateState = CreateCelebrateState();
 
         initPosition = transform.position;
         curPatrolPoint = transform.position;
@@ -108,8 +108,7 @@ public abstract class EnemyController : MonoBehaviour
     /// <summary>取组件；没有就自动补一个。</summary>
     private T EnsureComponent<T>() where T : Component
     {
-        T comp = GetComponent<T>();
-        if (comp == null) comp = gameObject.AddComponent<T>();
+        T comp = GetComponent<T>();        if (comp == null) comp = gameObject.AddComponent<T>();
         return comp;
     }
 
@@ -117,6 +116,16 @@ public abstract class EnemyController : MonoBehaviour
     {
         curEnemyState.LogicUpdata();
     }
+
+    #region 状态工厂（子类可以换成自己的状态实现）
+    protected virtual BaseState CreateGuardState() { return new GuardState(); }
+    protected virtual BaseState CreateChaseState() { return new ChaseState(); }
+    protected virtual BaseState CreatePatrolState() { return new PatrolState(); }
+    protected virtual BaseState CreateAttackState() { return new AttackState(); }
+    protected virtual BaseState CreateReturnState() { return new ReturnState(); }
+    protected virtual BaseState CreateDeadState() { return new DeadState(); }
+    protected virtual BaseState CreateCelebrateState() { return new CelebrateState(); }
+    #endregion
 
     // 死亡/受击是"跨状态"事件：由控制器统一订阅，各状态不需要自己判断血量
     protected virtual void OnEnable()
@@ -149,7 +158,7 @@ public abstract class EnemyController : MonoBehaviour
             GameManager.instance.OnPlayerDied -= HandlePlayerDied;
     }
 
-    private void HandleDeath()
+    protected virtual void HandleDeath()
     {
         Combat.CancelPendingAttack();       // 还没命中的这一刀作废
         SwitchState(EnemyState.DEAD);       // 唯一入口

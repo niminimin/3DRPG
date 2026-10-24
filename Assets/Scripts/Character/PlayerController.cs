@@ -24,6 +24,9 @@ public class PlayerController : MonoBehaviour
     /// <summary>是否处于击飞/眩晕中：期间不响应鼠标、不更新移动动画，但**照常吃伤害**。</summary>
     public bool IsStunned { get; private set; }
 
+    // 正在打的"可打回的石头"（Boss 战机制）
+    private RockProjectile rockTarget;
+
     #region ReadFromSO
     /// <summary>角色数值（从 AttackDataSO 读攻击距离/冷却/伤害）。</summary>
     public CharacterStats Stats
@@ -64,6 +67,7 @@ public class PlayerController : MonoBehaviour
     {
         MouseManager.instance.OnMouseClicked += MoveToPosition;
         MouseManager.instance.OnEnemyClicked += AttackEvent;
+        MouseManager.instance.OnRockClicked += AttackRock;
     }
 
     // 受击 / 死亡表现：由 CharacterStats 的事件驱动
@@ -88,6 +92,7 @@ public class PlayerController : MonoBehaviour
 
         MouseManager.instance.OnMouseClicked -= MoveToPosition;
         MouseManager.instance.OnEnemyClicked -= AttackEvent;
+        MouseManager.instance.OnRockClicked -= AttackRock;
     }
 
     /// <summary>受击表现：只有暴击才播受击动画（致死的那一下交给死亡表现）。</summary>
@@ -110,6 +115,7 @@ public class PlayerController : MonoBehaviour
         CancelPendingAttack();
         attackTarget = null;
         targetStats = null;
+        rockTarget = null;
 
         // 停住移动
         agent.isStopped = true;
@@ -123,6 +129,7 @@ public class PlayerController : MonoBehaviour
         {
             MouseManager.instance.OnMouseClicked -= MoveToPosition;
             MouseManager.instance.OnEnemyClicked -= AttackEvent;
+            MouseManager.instance.OnRockClicked -= AttackRock;
         }
 
         // 尸体不再被敌人选中/点击
@@ -152,6 +159,7 @@ public class PlayerController : MonoBehaviour
         CancelPendingAttack();      // 挥砍未命中就取消，避免点地面后还结算伤害
         attackTarget = null;
         targetStats = null;
+        rockTarget = null;
         agent.isStopped = false;
         agent.destination = target;
     }
@@ -165,9 +173,58 @@ public class PlayerController : MonoBehaviour
         // 反复点同一个敌人时，先停掉上一轮，避免叠出多条协程 -> 攻击频率翻倍
         StopAllCoroutines();
         CancelPendingAttack();      // 换目标时丢弃上一刀未命中的结算
+        rockTarget = null;
         attackTarget = target;
         targetStats = target.GetComponent<CharacterStats>();
         StartCoroutine(MoveToAttackTarget());
+    }
+
+    /// <summary>点击地上的石头（Boss 战机制）：走过去把它打回 Boss。</summary>
+    public void AttackRock(GameObject rockObject)
+    {
+        if (rockObject == null) return;
+        if (characterStats != null && characterStats.IsDead) return;
+        if (IsStunned) return;
+
+        RockProjectile rock = rockObject.GetComponent<RockProjectile>();
+        if (rock == null || rock.State != RockProjectile.RockState.Grounded) return;
+
+        StopAllCoroutines();
+        CancelPendingAttack();
+        attackTarget = rockObject;
+        targetStats = null;             // 石头没有 CharacterStats
+        rockTarget = rock;
+        StartCoroutine(MoveToRock());
+    }
+
+    /// <summary>走到石头旁边并攻击它（石头不会动，所以逻辑比追击敌人简单）。</summary>
+    private IEnumerator MoveToRock()
+    {
+        agent.isStopped = false;
+
+        while (rockTarget != null && attackTarget != null)
+        {
+            // 石头被别的途径处理掉了 / 已经飞走
+            if (rockTarget == null || rockTarget.State != RockProjectile.RockState.Grounded)
+                yield break;
+
+            float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+
+            if (distance > AttackRange)
+            {
+                agent.isStopped = false;
+                agent.destination = attackTarget.transform.position;
+                FaceTarget();
+                yield return null;
+            }
+            else
+            {
+                agent.isStopped = true;
+                FaceTarget();
+                BeginAttack();
+                yield return new WaitForSeconds(AttackCoolDown);
+            }
+        }
     }
 
     /// <summary>
@@ -219,6 +276,16 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void BeginAttack()
     {
+        if (attackTarget == null) return;
+
+        // 打石头：不需要伤害数值，只播动画；命中帧由 OnAttackHit 处理（把石头打回 Boss）
+        if (rockTarget != null)
+        {
+            hasPendingDamage = true;
+            animator.SetTrigger("Attack");
+            return;
+        }
+
         if (Stats == null || targetStats == null)
         {
             hasPendingDamage = false;
@@ -241,6 +308,17 @@ public class PlayerController : MonoBehaviour
         if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
         hasPendingDamage = false;           // 一次挥砍只结算一次
 
+        // 打石头：把它打回 Boss
+        if (rockTarget != null)
+        {
+            RockProjectile rock = rockTarget;
+            rockTarget = null;
+            attackTarget = null;
+            targetStats = null;
+            rock.OnHitByPlayer(gameObject);
+            return;
+        }
+
         if (Stats != null && Stats.IsDead) return;                  // 自己已经死了
         if (attackTarget == null || targetStats == null) return;
         if (targetStats.IsDead) return;                             // 目标已经死了
@@ -249,6 +327,15 @@ public class PlayerController : MonoBehaviour
         if (Vector3.Distance(transform.position, attackTarget.transform.position) > AttackRange) return;
 
         targetStats.TakeDamage(pendingDamage);
+    }
+
+    /// <summary>受击表现（不区分是否暴击）：被石头砸中等场合用。</summary>
+    public void PlayHitReaction()
+    {
+        if (characterStats != null && characterStats.IsDead) return;
+        if (IsStunned) return;
+
+        animator.SetTrigger("Hit");
     }
 
     /// <summary>取消尚未命中的这一下（点地面 / 切换目标 / 被打断时调用）。</summary>
@@ -271,6 +358,7 @@ public class PlayerController : MonoBehaviour
         CancelPendingAttack();
         attackTarget = null;
         targetStats = null;
+        rockTarget = null;
 
         IsStunned = true;
         animator.SetBool("Dizzy", true);
@@ -313,6 +401,60 @@ public class PlayerController : MonoBehaviour
 
         // 眩晕剩余时间（落地后继续晕）
         yield return new WaitForSeconds(Mathf.Max(0f, dizzyTime - duration));
+
+        animator.SetBool("Dizzy", false);
+        IsStunned = false;
+
+        if (agent != null) agent.isStopped = false;
+    }
+
+    /// <summary>
+    /// 被 Boss 近身攻击击退：水平滑出去一段距离（不离地），短暂定身。
+    /// 落点会吸附到 NavMesh 上，避免被推出地图。
+    /// </summary>
+    public void ApplyKnockback(Vector3 fromPosition, float distance, float stunTime)
+    {
+        if (characterStats != null && characterStats.IsDead) return;
+
+        StopAllCoroutines();
+        CancelPendingAttack();
+        attackTarget = null;
+        targetStats = null;
+        rockTarget = null;
+
+        IsStunned = true;
+        if (stunTime > 0f) animator.SetBool("Dizzy", true);
+
+        agent.isStopped = true;
+        agent.enabled = false;
+
+        StartCoroutine(KnockbackRoutine(fromPosition, distance, stunTime));
+    }
+
+    private IEnumerator KnockbackRoutine(Vector3 fromPosition, float distance, float stunTime)
+    {
+        Vector3 start = transform.position;
+
+        Vector3 dir = start - fromPosition;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) dir = -transform.forward;
+
+        Vector3 desired = start + dir.normalized * distance;
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(desired, out hit, 2f, NavMesh.AllAreas)) desired = hit.position;
+
+        const float SlideTime = 0.25f;
+        float t = 0f;
+        while (t < SlideTime)
+        {
+            t += Time.deltaTime;
+            transform.position = Vector3.Lerp(start, desired, Mathf.Clamp01(t / SlideTime));
+            yield return null;
+        }
+
+        LandOnNavMesh(desired);
+
+        if (stunTime > 0f) yield return new WaitForSeconds(stunTime);
 
         animator.SetBool("Dizzy", false);
         IsStunned = false;
