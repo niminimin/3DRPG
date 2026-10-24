@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(NavMeshAgent), typeof(CharacterStats))]
 public abstract class EnemyController : MonoBehaviour
 {
     /// <summary>移动能力（NavMeshAgent 的封装）。缺失时 Awake 会自动挂载。</summary>
@@ -15,7 +15,7 @@ public abstract class EnemyController : MonoBehaviour
     /// <summary>战斗能力：攻击、命中帧结算。</summary>
     public EnemyCombat Combat { get; private set; }
 
-    public Animator animator;
+    [HideInInspector] public Animator animator;
     protected CharacterStats characterStats;
 
     [Header("巡逻")]
@@ -54,6 +54,14 @@ public abstract class EnemyController : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         characterStats = GetComponent<CharacterStats>();
+
+        // RequireComponent 会自动补组件，但补出来的是"空数据"那个；
+        // 万一物体上还有另一个配好的，GetComponent 拿到的是空的那个，表现为 0 血。
+        if (characterStats == null)
+            Debug.LogError("[" + name + "] 缺少 CharacterStats，这个敌人不会有血量/伤害", this);
+
+        if (animator == null || animator.runtimeAnimatorController == null)
+            Debug.LogWarning("[" + name + "] Animator 没有设置控制器，敌人不会有动画表现（预制体上没配？）", this);
 
         // 能力组件：场景/预制体上没挂就自动补，保证老资产也能跑
         Locomotion = EnsureComponent<EnemyLocomotion>();
