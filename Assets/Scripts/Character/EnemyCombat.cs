@@ -17,10 +17,10 @@ public class EnemyCombat : MonoBehaviour
     private CharacterStats stats;
     private Animator animator;
 
-    // 攻击开始就算好、但等动画命中帧才结算的那一下
-    private GameObject currentTarget;
-    private DamageResult pendingDamage;
-    private bool hasPendingDamage;
+    // 攻击开始就算好、但等动画命中帧才结算的那一下（子类需要访问，所以 protected）
+    protected GameObject currentTarget;
+    protected DamageResult pendingDamage;
+    protected bool hasPendingDamage;
 
     /// <summary>角色数值（懒加载，避免同物体 Awake 顺序问题）。</summary>
     public CharacterStats Stats
@@ -32,7 +32,8 @@ public class EnemyCombat : MonoBehaviour
         }
     }
 
-    private Animator Animator
+    /// <summary>动画控制器（懒加载）。</summary>
+    protected Animator Anim
     {
         get
         {
@@ -59,7 +60,7 @@ public class EnemyCombat : MonoBehaviour
         get { return AttackRange + attackExitBuffer; }
     }
 
-    private void Awake()
+    protected virtual void Awake()
     {
         stats = GetComponent<CharacterStats>();
         animator = GetComponent<Animator>();
@@ -72,7 +73,7 @@ public class EnemyCombat : MonoBehaviour
     /// 开始一次攻击：决定是否暴击（要选 clip，所以必须提前掷骰）+ 播放动画 + 暂存结果。
     /// 真正的伤害在动画事件 <see cref="OnAttackHit"/> 里结算。
     /// </summary>
-    public void BeginAttack(GameObject target)
+    public virtual void BeginAttack(GameObject target)
     {
         currentTarget = target;
 
@@ -81,41 +82,50 @@ public class EnemyCombat : MonoBehaviour
         if (Stats == null || targetStats == null)
         {
             hasPendingDamage = false;
-            if (Animator != null) Animator.SetTrigger("Attack");    // 缺数值组件时只做表现
+            if (Anim != null) Anim.SetTrigger("Attack");    // 缺数值组件时只做表现
             return;
         }
 
         pendingDamage = Stats.CalculateDamage(targetStats);
         hasPendingDamage = true;
 
-        if (Animator != null)
-            Animator.SetTrigger(pendingDamage.isCritical ? "CriticalAttack" : "Attack");
+        if (Anim != null)
+            Anim.SetTrigger(pendingDamage.isCritical ? "CriticalAttack" : "Attack");
     }
 
     /// <summary>
     /// 【动画事件】攻击动作打到目标的那一帧调用（在 clip 上 Add Animation Event，函数名填 OnAttackHit）。
     /// 每个攻击 clip（Attack01/Attack02/CriticalAttack…）都要加同名的这个事件。
     /// </summary>
-    public void OnAttackHit()
+    public virtual void OnAttackHit()
     {
         if (!hasPendingDamage) return;      // 没有待结算的攻击（被打断 / 重复事件）
         hasPendingDamage = false;           // 一次攻击只结算一次
 
-        if (Stats != null && Stats.IsDead) return;      // 自己已经死了
-        if (currentTarget == null) return;
+        ApplyDamage(currentTarget, pendingDamage, AttackRange);
+    }
 
-        CharacterStats targetStats = currentTarget.GetComponent<CharacterStats>();
+    /// <summary>
+    /// 把一次攻击结算到目标身上：自己死/目标死/超出范围都会跳过。
+    /// 子类（例如 Boss 技能）可以复用它。
+    /// </summary>
+    protected void ApplyDamage(GameObject target, DamageResult result, float range)
+    {
+        if (Stats != null && Stats.IsDead) return;      // 自己已经死了
+        if (target == null) return;
+
+        CharacterStats targetStats = target.GetComponent<CharacterStats>();
         if (targetStats == null || targetStats.IsDead) return;
 
         // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
-        if (EnemyPerception.HorizontalDistance(transform.position, currentTarget.transform.position) > AttackRange)
+        if (EnemyPerception.HorizontalDistance(transform.position, target.transform.position) > range)
             return;
 
-        targetStats.TakeDamage(pendingDamage);
+        targetStats.TakeDamage(result);
     }
 
     /// <summary>取消尚未命中的这一下（离开攻击状态、被硬直打断时调用）。</summary>
-    public void CancelPendingAttack()
+    public virtual void CancelPendingAttack()
     {
         hasPendingDamage = false;
     }

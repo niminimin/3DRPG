@@ -18,6 +18,18 @@ public abstract class EnemyController : MonoBehaviour
     [HideInInspector] public Animator animator;
     protected CharacterStats characterStats;
 
+    [Header("受击硬直")]
+    [Tooltip("被暴击时硬直多久（秒）：期间不会发起攻击/技能，正在放的那一下会作废")]
+    public float staggerDuration = 0.4f;
+
+    private float staggerEndTime;
+
+    /// <summary>是否处于受击硬直中（状态类用来决定"这一帧要不要出手"）。</summary>
+    public bool IsStaggered
+    {
+        get { return Time.time < staggerEndTime; }
+    }
+
     [Header("巡逻")]
     public float patrolRadius;
 
@@ -151,11 +163,17 @@ public abstract class EnemyController : MonoBehaviour
         SwitchState(EnemyState.CELEBRATE);
     }
 
-    /// <summary>受击表现：只有暴击才播受击动画（致死的那一下交给死亡动画）。</summary>
+    /// <summary>受击表现：只有暴击才播受击动画并进入硬直（致死的那一下交给死亡动画）。</summary>
     private void HandleDamaged(DamageResult result)
     {
         if (!result.isCritical) return;
         if (characterStats != null && characterStats.IsDead) return;
+
+        // 硬直：受击期间不发起新的攻击/技能
+        staggerEndTime = Time.time + staggerDuration;
+
+        // 正在放的攻击/技能作废：即使动画播到命中帧，也不会再结算
+        if (Combat != null) Combat.CancelPendingAttack();
 
         animator.SetTrigger("Hit");
     }

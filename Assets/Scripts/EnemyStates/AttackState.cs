@@ -23,6 +23,9 @@ public class AttackState : BaseState
 
     public override void LogicUpdata()
     {
+        // 受击硬直：被打暴击时这一帧不出手（技能/攻击都已作废）
+        if (enemy.IsStaggered) return;
+
         // 目标丢失 → 回家
         if (!enemy.Perception.CanSeePlayer())
         {

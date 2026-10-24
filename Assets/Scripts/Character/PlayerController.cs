@@ -21,6 +21,9 @@ public class PlayerController : MonoBehaviour
     private DamageResult pendingDamage;
     private bool hasPendingDamage;
 
+    /// <summary>是否处于击飞/眩晕中：期间不响应鼠标、不更新移动动画，但**照常吃伤害**。</summary>
+    public bool IsStunned { get; private set; }
+
     #region ReadFromSO
     /// <summary>角色数值（从 AttackDataSO 读攻击距离/冷却/伤害）。</summary>
     public CharacterStats Stats
@@ -92,6 +95,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!result.isCritical) return;
         if (characterStats.IsDead) return;
+        if (IsStunned) return;          // 眩晕期间不播受击，避免抢占 Dizzy 动画（伤害照扣）
 
         animator.SetTrigger("Hit");
     }
@@ -101,6 +105,7 @@ public class PlayerController : MonoBehaviour
     {
         Debug.Log("[" + name + "] 死亡");
 
+        CancelLaunch();             // 如果正在空中，先落回 NavMesh
         StopAllCoroutines();
         CancelPendingAttack();
         attackTarget = null;
@@ -128,6 +133,7 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         if (characterStats != null && characterStats.IsDead) return;   // 死后不再更新移动动画
+        if (IsStunned) return;                                        // 击飞/眩晕期间不刷新移动速度
 
         SwitchAnimation();
     }
@@ -140,6 +146,7 @@ public class PlayerController : MonoBehaviour
     public void MoveToPosition(Vector3 target)
     {
         if (characterStats != null && characterStats.IsDead) return;   // 死了不再响应移动
+        if (IsStunned) return;                                         // 击飞/眩晕期间不响应
 
         StopAllCoroutines();        // 取消正在进行的追击 / 攻击
         CancelPendingAttack();      // 挥砍未命中就取消，避免点地面后还结算伤害
@@ -153,6 +160,7 @@ public class PlayerController : MonoBehaviour
     {
         if (target == null) return;
         if (characterStats != null && characterStats.IsDead) return;   // 死了不再攻击
+        if (IsStunned) return;                                         // 击飞/眩晕期间不响应
 
         // 反复点同一个敌人时，先停掉上一轮，避免叠出多条协程 -> 攻击频率翻倍
         StopAllCoroutines();
@@ -248,6 +256,97 @@ public class PlayerController : MonoBehaviour
     {
         hasPendingDamage = false;
     }
+
+    #region 击飞 / 眩晕
+    /// <summary>
+    /// 被 Boss 技能击飞：脱离 NavMesh、按抛物线飞起来，落地后眩晕一段时间。
+    /// 眩晕期间**不免疫伤害**（技能第二段还要打中），只是不能操作。
+    /// </summary>
+    public void ApplyLaunch(Vector3 fromPosition, float upSpeed, float dizzyTime)
+    {
+        if (characterStats != null && characterStats.IsDead) return;
+
+        // 取消正在进行的移动/攻击，避免落地后继续往旧目的地跑
+        StopAllCoroutines();
+        CancelPendingAttack();
+        attackTarget = null;
+        targetStats = null;
+
+        IsStunned = true;
+        animator.SetBool("Dizzy", true);
+
+        // NavMeshAgent 会一直把玩家按在导航网格上，必须先关掉才能离地
+        agent.isStopped = true;
+        agent.enabled = false;
+
+        StartCoroutine(LaunchRoutine(fromPosition, upSpeed, dizzyTime));
+    }
+
+    private IEnumerator LaunchRoutine(Vector3 fromPosition, float upSpeed, float dizzyTime)
+    {
+        const float Gravity = 20f;                       // 自定义重力，手感统一
+        float duration = 2f * upSpeed / Gravity;         // 上升 + 下落的总时长
+
+        Vector3 start = transform.position;
+
+        Vector3 dir = start - fromPosition;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.0001f) dir = -transform.forward;
+        // 水平只推一点点：推太远第二刀就够不到玩家了
+        Vector3 end = start + dir.normalized * 0.6f;
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / duration);
+
+            Vector3 p = Vector3.Lerp(start, end, k);
+            p.y = start.y + upSpeed * t - 0.5f * Gravity * t * t;   // 抛物线
+            transform.position = p;
+
+            yield return null;
+        }
+
+        // 落地：贴回 NavMesh 并恢复 agent
+        LandOnNavMesh(end);
+
+        // 眩晕剩余时间（落地后继续晕）
+        yield return new WaitForSeconds(Mathf.Max(0f, dizzyTime - duration));
+
+        animator.SetBool("Dizzy", false);
+        IsStunned = false;
+
+        if (agent != null) agent.isStopped = false;
+    }
+
+    /// <summary>把玩家放到离 point 最近的 NavMesh 点上，并重新启用 agent。</summary>
+    private void LandOnNavMesh(Vector3 point)
+    {
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(point, out hit, 3f, NavMesh.AllAreas)) point = hit.position;
+        transform.position = point;
+
+        if (agent == null) return;
+        agent.enabled = true;
+        agent.Warp(point);
+        agent.isStopped = true;
+    }
+
+    /// <summary>中断击飞（例如空中就死了）：强制落地并恢复 agent 状态。</summary>
+    private void CancelLaunch()
+    {
+        StopAllCoroutines();
+
+        if (IsStunned)
+        {
+            IsStunned = false;
+            if (animator != null) animator.SetBool("Dizzy", false);
+        }
+
+        if (agent != null && !agent.enabled) LandOnNavMesh(transform.position);
+    }
+    #endregion
 
     private void FaceTarget()
     {
