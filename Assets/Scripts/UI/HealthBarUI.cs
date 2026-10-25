@@ -72,6 +72,16 @@ public class HealthBarUI : MonoBehaviour
         SyncImmediate(target.CurHealth);
     }
 
+    /// <summary>
+    /// Start 在所有 Awake 之后执行。
+    /// OnEnable 可能比 CharacterStats.Awake 更早跑（那时 CurHealth 还是 0），
+    /// 所以这里必须再同步一次，否则玩家血条会一直显示 0。
+    /// </summary>
+    private void Start()
+    {
+        if (target != null) SyncImmediate(target.CurHealth);
+    }
+
     private void OnDisable()
     {
         if (target == null) return;
