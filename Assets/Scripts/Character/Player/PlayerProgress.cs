@@ -7,11 +7,10 @@ using UnityEngine.UI;
 /// - 经验来源：敌人死亡时按 CharacterDataSO.expReward 发放
 /// - 升级曲线与成长值都在 PlayerLevelDataSO 里配
 /// - 通过事件通知 UI（不需要每帧轮询）
+/// 继承 Singleton&lt;PlayerProgress&gt;，与其他管理器保持一致（防重复、销毁自动清空）。
 /// </summary>
-public class PlayerProgress : MonoBehaviour
+public class PlayerProgress : Singleton<PlayerProgress>
 {
-    public static PlayerProgress instance;
-
     [Header("配置")]
     public PlayerLevelDataSO levelData;
 
@@ -45,9 +44,9 @@ public class PlayerProgress : MonoBehaviour
     /// <summary>升级：(新等级)。</summary>
     public event Action<int> OnLevelUp;
 
-    private void Awake()
+    protected override void Awake()
     {
-        instance = this;
+        base.Awake();       // ★ 基类负责 instance 赋值 + 重复实例销毁
 
         if (stats == null) stats = GetComponent<CharacterStats>();
         if (levelData == null)
