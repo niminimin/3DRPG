@@ -43,6 +43,11 @@ public class RockProjectile : MonoBehaviour
 
     private RockState state = RockState.Done;
 
+    /// <summary>石头"用完"时回调（由对象池设置）；为空时退化为 Destroy。</summary>
+    [System.NonSerialized] public System.Action<RockProjectile> OnFinished;
+
+    private bool finished;
+
     private Rigidbody rb;
     private Collider col;
 
@@ -121,12 +126,45 @@ public class RockProjectile : MonoBehaviour
         state = RockState.Flying;
         aimResolved = false;
         groundY = 0f;
+        finished = false;
+        CancelInvoke();                     // 清掉上一次可能残留的自动回收
 
         gameObject.tag = "Untagged";        // 飞行中不可点击
 
         // 飞行期间：脚本控制位置、关碰撞（避免空中互相撞 / 撞玩家）
-        if (Rb != null) Rb.isKinematic = true;
+        if (Rb != null)
+        {
+            Rb.isKinematic = true;
+            Rb.useGravity = false;
+        }
         if (Col != null) Col.enabled = false;
+    }
+
+    /// <summary>强制结束（Boss 死亡清场时用）：回池或销毁。</summary>
+    public void ForceFinish()
+    {
+        if (finished) return;
+        Finish();
+    }
+
+    /// <summary>石头用完：有池子就归还，没池子就销毁。</summary>
+    private void Finish()
+    {
+        if (finished) return;
+        finished = true;
+
+        CancelInvoke();
+        state = RockState.Done;
+        gameObject.tag = "Untagged";
+
+        // 断开引用，避免池里的石头一直抓着可能已被销毁的 Boss
+        attacker = null;
+        owner = null;
+        ownerStats = null;
+        playerTarget = null;
+
+        if (OnFinished != null) OnFinished(this);
+        else Destroy(gameObject);
     }
 
     // ==================== 每帧 ====================
@@ -210,7 +248,7 @@ public class RockProjectile : MonoBehaviour
             Rb.useGravity = false;
         }
 
-        if (groundLifetime > 0f) Destroy(gameObject, groundLifetime);
+        if (groundLifetime > 0f) Invoke("Finish", groundLifetime);
     }
 
     /// <summary>找石头下方的地面高度：优先取 tag = Ground 的碰撞体，避免打到别的石头/角色。</summary>
@@ -264,8 +302,7 @@ public class RockProjectile : MonoBehaviour
             ownerStats.TakeDamage(new DamageResult { amount = reflectDamage, isCritical = true });
         }
 
-        state = RockState.Done;
-        Destroy(gameObject);
+        Finish();
     }
 
     // ==================== 工具 ====================

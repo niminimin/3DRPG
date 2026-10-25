@@ -71,7 +71,7 @@ public class GolemCombat : EnemyCombat
     {
         foreach (var rock in spawnedRocks)
         {
-            if (rock != null) Destroy(rock.gameObject);
+            if (rock != null) rock.ForceFinish();   // 回池或销毁
         }
         spawnedRocks.Clear();
     }
@@ -132,8 +132,19 @@ public class GolemCombat : EnemyCombat
         if (currentTarget == null) return;
 
         Vector3 spawnPos = throwAnchor != null ? throwAnchor.position : transform.position + Vector3.up * 2.5f;
-        GameObject rock = Instantiate(rockPrefab, spawnPos, Quaternion.identity);
-        RockProjectile projectile = rock.GetComponent<RockProjectile>();
+
+        // 优先从对象池借石头；没有池子时退化为生成
+        RockProjectile projectile = null;
+        if (RockPool.instance != null)
+        {
+            projectile = RockPool.instance.Get(spawnPos);
+        }
+        else
+        {
+            GameObject rock = Instantiate(rockPrefab, spawnPos, Quaternion.identity);
+            projectile = rock.GetComponent<RockProjectile>();
+        }
+
         if (projectile != null)
         {
             projectile.Launch(Stats, currentTarget, gameObject, Stats, rockFlightTime, 1.5f);
