@@ -246,7 +246,7 @@ public class PlayerController : MonoBehaviour
                 yield break;
             }
 
-            float distance = Vector3.Distance(transform.position, attackTarget.transform.position);
+            float distance = DistanceToTargetSurface(attackTarget);
 
             // 进入用 AttackRange，离开用 AttackExitRange（滞回，避免在边界每帧来回切）
             inAttackRange = distance <= (inAttackRange ? AttackExitRange : AttackRange);
@@ -324,9 +324,38 @@ public class PlayerController : MonoBehaviour
         if (targetStats.IsDead) return;                             // 目标已经死了
 
         // 命中帧再校验距离：抬手后目标跑开就不该吃到伤害
-        if (Vector3.Distance(transform.position, attackTarget.transform.position) > AttackRange) return;
+        // 注意：量的是"到目标身体表面"的距离，大体积 Boss 才打得到
+        if (DistanceToTargetSurface(attackTarget) > AttackRange) return;
 
         targetStats.TakeDamage(pendingDamage);
+    }
+
+    /// <summary>
+    /// 到目标"身体表面"的水平距离（不是中心）。
+    /// Boss 体积大、NavMeshAgent 半径也大，用中心距永远够不到攻击范围。
+    /// </summary>
+    private float DistanceToTargetSurface(GameObject target)
+    {
+        if (target == null) return float.MaxValue;
+
+        Vector3 point = target.transform.position;
+
+        Collider col = target.GetComponent<Collider>();
+        if (col != null && col.enabled)
+        {
+            Vector3 closest = col.ClosestPoint(transform.position);
+            // 玩家已经在碰撞体内部时 ClosestPoint 会原样返回，这时当作 0 距离
+            if ((closest - transform.position).sqrMagnitude > 0.0001f)
+                point = closest;
+            else
+                point = transform.position;
+        }
+
+        Vector3 self = transform.position;
+        self.y = 0f;
+        point.y = 0f;
+
+        return Vector3.Distance(self, point);
     }
 
     /// <summary>受击表现（不区分是否暴击）：被石头砸中等场合用。</summary>

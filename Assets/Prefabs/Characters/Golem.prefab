@@ -632,6 +632,7 @@ GameObject:
   - component: {fileID: 7284173359606201991}
   - component: {fileID: 3404167174321640560}
   - component: {fileID: 2023012067675324162}
+  - component: {fileID: 2630894594643152168}
   m_Layer: 7
   m_Name: Golem
   m_TagString: Enemy
@@ -805,6 +806,22 @@ MonoBehaviour:
   initRotation: {x: 0, y: 0, z: 0, w: 0}
   DestroyAfterDeath: 1
   corpseKeepTime: 1
+--- !u!114 &2630894594643152168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8007237374805338159}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55592bd5d0646774dbe9a595b30bff28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  popupPrefab: {fileID: 9115396136817608751, guid: b9fd128eed2f52642b79422c2c028e1e,
+    type: 3}
+  headHeight: 3.7
+  spread: 0.25
 --- !u!1 &8104804403868294776
 GameObject:
   m_ObjectHideFlags: 0

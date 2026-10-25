@@ -322,6 +322,7 @@ GameObject:
   - component: {fileID: 4631903709194743378}
   - component: {fileID: 2027100667091470337}
   - component: {fileID: 8023102286448530883}
+  - component: {fileID: 8684029968111711602}
   m_Layer: 7
   m_Name: TurtleShell
   m_TagString: Enemy
@@ -484,6 +485,22 @@ MonoBehaviour:
   initRotation: {x: 0, y: 0, z: 0, w: 0}
   DestroyAfterDeath: 1
   corpseKeepTime: 1
+--- !u!114 &8684029968111711602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2069468942395286556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55592bd5d0646774dbe9a595b30bff28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  popupPrefab: {fileID: 9115396136817608751, guid: b9fd128eed2f52642b79422c2c028e1e,
+    type: 3}
+  headHeight: 1.5
+  spread: 0.25
 --- !u!1 &2106627502492394318
 GameObject:
   m_ObjectHideFlags: 0
