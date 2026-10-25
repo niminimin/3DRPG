@@ -88,7 +88,8 @@ public class SceneFader : Singleton<SceneFader>
         // 保存玩家进度（等级、经验、属性加成）
         PlayerSession.Capture();
 
-        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName);
+        // 显式声明 Single：加载新场景时卸载当前场景（不是叠加）
+        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single);
         if (op == null)
         {
             Debug.LogError("[SceneFader] 场景加载失败：" + sceneName + "（检查 Build Settings）", this);
