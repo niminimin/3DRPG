@@ -12,6 +12,11 @@ public class CharacterStats : MonoBehaviour
     private int curHealth;
     private int curDefence;
 
+    // 升级带来的永久加成（只加在运行时，绝不去改 ScriptableObject 资产）
+    private int bonusMaxHealth;
+    private int bonusAttack;
+    private int bonusDefence;
+
     // 死亡标记：保证 OnDead 只触发一次，同时死后不再结算伤害
     private bool isDead;
 
@@ -46,14 +51,15 @@ public class CharacterStats : MonoBehaviour
             curDefence = 0;
             return;
         }
-        curHealth = characterData.maxHealth;
-        curDefence = characterData.baseDefence;
+        curHealth = MaxHealth;
+        curDefence = MaxDefence;
     }
 
     #region readCharacterData
+    /// <summary>最大生命 = 模板值 + 升级加成。</summary>
     public int MaxHealth
     {
-        get { return characterData == null ? 0 : characterData.maxHealth; }
+        get { return (characterData == null ? 0 : characterData.maxHealth) + bonusMaxHealth; }
         set { if (characterData != null) characterData.maxHealth = value; }
     }
 
@@ -69,10 +75,54 @@ public class CharacterStats : MonoBehaviour
         set { if (characterData != null) characterData.baseDefence = value; }
     }
 
+    /// <summary>防御上限 = 模板值 + 升级加成。</summary>
+    public int MaxDefence
+    {
+        get { return (characterData == null ? 0 : characterData.baseDefence) + bonusDefence; }
+    }
+
     public int CurDefence
     {
         get { return curDefence; }
         set { curDefence = value; }
+    }
+
+    /// <summary>攻击加成（升级获得），会加到伤害区间上。</summary>
+    public int BonusAttack
+    {
+        get { return bonusAttack; }
+    }
+
+    /// <summary>被击败时给玩家的经验（来自 CharacterDataSO）。</summary>
+    public int ExpReward
+    {
+        get { return characterData == null ? 0 : characterData.expReward; }
+    }
+    #endregion
+
+    #region 成长（升级用）
+    /// <summary>永久增加生命上限，同时补等量血（升级时回血）。</summary>
+    public void AddBonusMaxHealth(int amount)
+    {
+        if (amount == 0) return;
+
+        bonusMaxHealth += amount;
+        curHealth = Mathf.Clamp(curHealth + amount, 0, MaxHealth);
+
+        if (OnHealthChanged != null) OnHealthChanged(curHealth);
+    }
+
+    /// <summary>永久增加攻击力。</summary>
+    public void AddBonusAttack(int amount)
+    {
+        bonusAttack += amount;
+    }
+
+    /// <summary>永久增加防御力（运行时防御同步到新上限）。</summary>
+    public void AddBonusDefence(int amount)
+    {
+        bonusDefence += amount;
+        curDefence = MaxDefence;
     }
     #endregion
 
@@ -130,7 +180,8 @@ public class CharacterStats : MonoBehaviour
         DamageResult result = new DamageResult();
 
         // Random.Range(int, int) 是开区间，+1 变成闭区间
-        int damage = Random.Range(MinDamage, MaxDamage + 1);
+        // 升级获得的攻击力直接加到伤害区间上
+        int damage = Random.Range(MinDamage + bonusAttack, MaxDamage + bonusAttack + 1);
 
         result.isCritical = Random.value < CriticalChance;
         if (result.isCritical)

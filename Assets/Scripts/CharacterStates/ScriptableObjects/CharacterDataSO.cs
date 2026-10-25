@@ -9,4 +9,7 @@ public class CharacterDataSO : ScriptableObject
     public int maxHealth;
     public int baseDefence;
 
+    [Header("Reward")]
+    [Tooltip("被击败后奖励给玩家的经验值（玩家自己这个值不用填）")]
+    public int expReward;
 }

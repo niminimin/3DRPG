@@ -41,34 +41,35 @@ public class DamagePopup : MonoBehaviour
     /// <summary>由生成方调用：设置数字与样式。</summary>
     public void Setup(int amount, bool critical)
     {
+        if (critical)
+            SetupText(amount.ToString(), new Color(1f, 0.72f, 0.18f), 36, FontStyle.Bold, 1.1f);
+        else
+            SetupText(amount.ToString(), Color.white, 24, FontStyle.Normal, 1f);
+    }
+
+    /// <summary>通用文字版（升级提示等）。</summary>
+    public void SetupText(string content, Color color, int fontSize)
+    {
+        SetupText(content, color, fontSize, FontStyle.Bold, 1f);
+    }
+
+    private void SetupText(string content, Color color, int fontSize, FontStyle style, float textScale)
+    {
         startPos = transform.position;
         timer = 0f;
         finished = false;
 
         if (group != null) group.alpha = 1f;
 
-        if (text != null)
-        {
-            text.text = amount.ToString();
+        if (text == null) return;
 
-            // ★ 注意：这里不能改根节点 transform.localScale
-            //   根节点承载着 World Space Canvas 的 0.01 缩放，改了会让数字大 100 倍
-            //   暴击的"放大"只作用在文字本身上
-            if (critical)
-            {
-                text.color = new Color(1f, 0.72f, 0.18f);   // 暴击：橙黄
-                text.fontSize = 36;
-                text.fontStyle = FontStyle.Bold;
-                text.transform.localScale = Vector3.one * 1.1f;
-            }
-            else
-            {
-                text.color = Color.white;
-                text.fontSize = 24;
-                text.fontStyle = FontStyle.Normal;
-                text.transform.localScale = Vector3.one;
-            }
-        }
+        text.text = content;
+        text.color = color;
+        text.fontSize = fontSize;
+        text.fontStyle = style;
+
+        // ★ 只缩放文字节点，绝不能动根节点（它承载 World Space Canvas 的 0.01 缩放）
+        text.transform.localScale = Vector3.one * textScale;
     }
 
     private void LateUpdate()

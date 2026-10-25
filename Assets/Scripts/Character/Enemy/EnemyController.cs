@@ -162,6 +162,10 @@ public abstract class EnemyController : MonoBehaviour
     {
         Combat.CancelPendingAttack();       // 还没命中的这一刀作废
         SwitchState(EnemyState.DEAD);       // 唯一入口
+
+        // 给玩家发经验（数值来自这个敌人自己的 CharacterDataSO.expReward）
+        if (characterStats != null && PlayerProgress.instance != null)
+            PlayerProgress.instance.AddExp(characterStats.ExpReward);
     }
 
     /// <summary>玩家死亡：切到庆祝状态（已经死了的敌人不庆祝）。</summary>
