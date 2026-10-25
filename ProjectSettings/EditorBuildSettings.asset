@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
+  - enabled: 1
+    path: Assets/Scenes/GreenWorld.unity
+    guid: d9dc24f6a69132d4cbaa834e5bda5742
   m_configObjects: {}

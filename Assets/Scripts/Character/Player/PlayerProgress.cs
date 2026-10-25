@@ -59,6 +59,16 @@ public class PlayerProgress : Singleton<PlayerProgress>
         if (OnExpChanged != null) OnExpChanged(CurrentExp, ExpToNext);
     }
 
+    /// <summary>跨场景恢复进度（等级、经验）。</summary>
+    public void RestoreState(int level, int exp)
+    {
+        Level = Mathf.Max(1, level);
+        CurrentExp = Mathf.Max(0, exp);
+
+        // 告诉 UI 刷新（从别的场景回来时，UI 是新建的）
+        if (OnExpChanged != null) OnExpChanged(CurrentExp, ExpToNext);
+    }
+
     /// <summary>获得经验（可一次升多级）。</summary>
     public void AddExp(int amount)
     {

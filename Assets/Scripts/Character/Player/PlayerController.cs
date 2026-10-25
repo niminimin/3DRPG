@@ -164,6 +164,35 @@ public class PlayerController : MonoBehaviour
         agent.destination = target;
     }
 
+    /// <summary>跨场景传送后把玩家放到落点（会同时清掉当前的移动/攻击状态）。</summary>
+    public void TeleportTo(Vector3 position, Quaternion rotation)
+    {
+        StopAllCoroutines();
+        CancelPendingAttack();
+
+        attackTarget = null;
+        targetStats = null;
+        rockTarget = null;
+
+        if (agent != null)
+        {
+            agent.isStopped = true;
+
+            // Warp 会把 Agent 直接放到导航网格上的目标点，比改 transform 更稳
+            if (agent.enabled && agent.isOnNavMesh)
+                agent.Warp(position);
+            else
+                transform.position = position;
+
+            agent.ResetPath();
+            agent.isStopped = false;
+        }
+
+        transform.rotation = rotation;
+
+        if (agent != null) agent.transform.rotation = rotation;
+    }
+
     private void AttackEvent(GameObject target)
     {
         if (target == null) return;

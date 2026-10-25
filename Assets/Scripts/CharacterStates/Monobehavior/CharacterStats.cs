@@ -93,6 +93,18 @@ public class CharacterStats : MonoBehaviour
         get { return bonusAttack; }
     }
 
+    /// <summary>生命加成（升级获得）。</summary>
+    public int BonusMaxHealth
+    {
+        get { return bonusMaxHealth; }
+    }
+
+    /// <summary>防御加成（升级获得）。</summary>
+    public int BonusDefence
+    {
+        get { return bonusDefence; }
+    }
+
     /// <summary>被击败时给玩家的经验（来自 CharacterDataSO）。</summary>
     public int ExpReward
     {
@@ -123,6 +135,19 @@ public class CharacterStats : MonoBehaviour
     {
         bonusDefence += amount;
         curDefence = MaxDefence;
+    }
+
+    /// <summary>直接套用一组加成（跨场景恢复进度用）。</summary>
+    public void ApplyBonuses(int health, int attack, int defence)
+    {
+        bonusMaxHealth = health;
+        bonusAttack = attack;
+        bonusDefence = defence;
+
+        curHealth = MaxHealth;
+        curDefence = MaxDefence;
+
+        if (OnHealthChanged != null) OnHealthChanged(curHealth);
     }
     #endregion
 

@@ -123,6 +123,53 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 23800000, guid: b933252c626cec64a82af893cc843a8d, type: 2}
+--- !u!1 &32125230
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 32125232}
+  - component: {fileID: 32125231}
+  m_Layer: 0
+  m_Name: SceneFader
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &32125231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 32125230}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09089eee4e432844f908c9ac09b83a86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fadeOutTime: 0.35
+  fadeInTime: 0.35
+  fadeColor: {r: 0, g: 0, b: 0, a: 1}
+--- !u!4 &32125232
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 32125230}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &42879326
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -74353,7 +74400,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 713941839}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.20560424, y: 0, z: 0, w: 0.97863525}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -91601,6 +91648,52 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 60f79905accf3b24fa0114b941f1aac0, type: 3}
+--- !u!1 &871737641
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 871737643}
+  - component: {fileID: 871737642}
+  m_Layer: 0
+  m_Name: PortalEntry_B
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &871737642
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871737641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b41c46aa1397854396170fde9086292, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  id: B
+  faceForward: 1
+--- !u!4 &871737643
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871737641}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_LocalPosition: {x: 0, y: 0, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &885109031 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3404167174321640560, guid: 2ba0be9a7f217ff4a8fd35a66391063f,
@@ -97176,9 +97269,10 @@ GameObject:
   - component: {fileID: 1049094454}
   - component: {fileID: 1049094453}
   - component: {fileID: 1049094452}
+  - component: {fileID: 1049094456}
   m_Layer: 0
   m_Name: Quad
-  m_TagString: Untagged
+  m_TagString: Portal
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -97264,12 +97358,29 @@ Transform:
   m_GameObject: {fileID: 1049094451}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: 1.8000001, z: 5.2000003}
+  m_LocalPosition: {x: -7, y: 1.8000001, z: 22.4}
   m_LocalScale: {x: 3, y: 3, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1049094456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1049094451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53af082ec90eab44dab1d22bb48b452b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetScene: GreenWorld
+  entryId: A
+  activateRadius: 1.3
+  cooldown: 2
+  portalName: "\u901A\u5F80\u7EFF\u6D32"
 --- !u!1 &1052167025
 GameObject:
   m_ObjectHideFlags: 3
@@ -238787,3 +238898,5 @@ SceneRoots:
   - {fileID: 931969679}
   - {fileID: 1402528056}
   - {fileID: 1049094455}
+  - {fileID: 871737643}
+  - {fileID: 32125232}

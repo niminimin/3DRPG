@@ -43,6 +43,9 @@ public class MouseManager : Singleton<MouseManager>
                 case "Rock":                // 石头也能打，用同一个攻击光标
                     Cursor.SetCursor(attack, new Vector2(16, 16), CursorMode.Auto);
                     break;
+                case "Portal":              // 传送门：门形光标
+                    Cursor.SetCursor(doorway, new Vector2(16, 16), CursorMode.Auto);
+                    break;
             }
         }
     }
