@@ -76,8 +76,13 @@ public class PlayerController : MonoBehaviour
     {
         if (portal == null) return;
 
-        // 目的地取门的水平位置，高度用玩家自己的，避免 SetDestination 采样不到导航网格
-        Vector3 target = portal.transform.position;
+        // 目的地取"门后 1.5 米"：让玩家穿过门，而不是停在门前 stoppingDistance 的位置
+        Vector3 fromPlayer = portal.transform.position - transform.position;
+        fromPlayer.y = 0f;
+
+        Vector3 dir = fromPlayer.sqrMagnitude > 0.01f ? fromPlayer.normalized : portal.transform.forward;
+
+        Vector3 target = portal.transform.position + dir * 1.5f;
         target.y = transform.position.y;
 
         MoveToPosition(target);

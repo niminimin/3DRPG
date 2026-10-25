@@ -21783,6 +21783,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Golem
       objectReference: {fileID: 0}
+    - target: {fileID: 8007237374805338159, guid: 2ba0be9a7f217ff4a8fd35a66391063f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -32422,6 +32427,54 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 233776127}
   m_CullTransparentMesh: 1
+--- !u!1 &235999525
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 235999527}
+  - component: {fileID: 235999526}
+  m_Layer: 0
+  m_Name: CameraRig
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &235999526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 235999525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf813012e84a0a24a9f8684a2ab63b02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  freeLook: {fileID: 955600411}
+  mainCamera: {fileID: 330585545}
+--- !u!4 &235999527
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 235999525}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 330585546}
+  - {fileID: 955600412}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &237012377
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -32558,7 +32611,7 @@ PrefabInstance:
     - target: {fileID: 1235898214203784293, guid: 0e61a5a3aab8db44990da91122f21a86,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2702023192519805173, guid: 0e61a5a3aab8db44990da91122f21a86,
         type: 3}
@@ -32687,6 +32740,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Layer
       value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2069468942395286556, guid: 9e6cddc003fc0da4c9dcba7ad40a2b37,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2069468942395286556, guid: 9e6cddc003fc0da4c9dcba7ad40a2b37,
         type: 3}
@@ -35456,7 +35514,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 235999527}
   m_LocalEulerAnglesHint: {x: 36.489, y: -58.77, z: 0.381}
 --- !u!114 &330585547
 MonoBehaviour:
@@ -91688,7 +91746,7 @@ Transform:
   m_GameObject: {fileID: 871737641}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_LocalPosition: {x: 0, y: 0, z: 2}
+  m_LocalPosition: {x: -7, y: 0, z: 18.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -91996,7 +92054,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 955600410}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 10.400001, y: 6.33, z: -27.470001}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -92004,7 +92062,7 @@ Transform:
   - {fileID: 713941841}
   - {fileID: 1052167027}
   - {fileID: 1679318680}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 235999527}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &966005168
 PrefabInstance:
@@ -97378,7 +97436,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   targetScene: GreenWorld
   entryId: A
-  activateRadius: 1.3
+  activateRadius: 2.5
   cooldown: 2
   portalName: "\u901A\u5F80\u7EFF\u6D32"
 --- !u!1 &1052167025
@@ -218826,6 +218884,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Slime (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 4239668271317880106, guid: 8454646dd64e3ce4fa30755ce2edd0b8,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4968315929239416714, guid: 8454646dd64e3ce4fa30755ce2edd0b8,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -238113,6 +238176,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2069468942395286556, guid: 9e6cddc003fc0da4c9dcba7ad40a2b37,
         type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2069468942395286556, guid: 9e6cddc003fc0da4c9dcba7ad40a2b37,
+        type: 3}
       propertyPath: m_TagString
       value: Enemy
       objectReference: {fileID: 0}
@@ -238725,6 +238793,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Slime
       objectReference: {fileID: 0}
+    - target: {fileID: 4239668271317880106, guid: 8454646dd64e3ce4fa30755ce2edd0b8,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4968315929239416714, guid: 8454646dd64e3ce4fa30755ce2edd0b8,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -238879,19 +238952,17 @@ PrefabInstance:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 330585546}
   - {fileID: 2050181370}
-  - {fileID: 955600412}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1512251806}
   - {fileID: 2074545252}
+  - {fileID: 1906456560}
   - {fileID: 7151123860709730406}
   - {fileID: 9110644584319765536}
   - {fileID: 1667501529}
   - {fileID: 2125894247}
   - {fileID: 264286255}
-  - {fileID: 1906456560}
   - {fileID: 257973645}
   - {fileID: 95887671}
   - {fileID: 1184937670}
@@ -238900,3 +238971,4 @@ SceneRoots:
   - {fileID: 1049094455}
   - {fileID: 871737643}
   - {fileID: 32125232}
+  - {fileID: 235999527}
