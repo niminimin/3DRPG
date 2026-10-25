@@ -25173,7 +25173,7 @@ PrefabInstance:
     - target: {fileID: 7527002409417101659, guid: 2ba0be9a7f217ff4a8fd35a66391063f,
         type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8007237374805338159, guid: 2ba0be9a7f217ff4a8fd35a66391063f,
         type: 3}
@@ -278642,7 +278642,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 885109031}
   player: {fileID: 2066896391494904840}
-  showDistance: 25
+  showDistance: 20
   fadeSpeed: 2
   fillImage: {fileID: 1305895337}
   delayedFillImage: {fileID: 1224839635}
