@@ -13,6 +13,9 @@ public static class PlayerSession
     public static int Level = 1;
     public static int Exp;
 
+    public static int CurHealth;
+    public static int MaxHealth;
+
     public static int BonusHealth;
     public static int BonusAttack;
     public static int BonusDefence;
@@ -29,6 +32,9 @@ public static class PlayerSession
         CharacterStats stats = progress.stats;
         if (stats != null)
         {
+            CurHealth = stats.CurHealth;
+            MaxHealth = stats.MaxHealth;
+
             BonusHealth = stats.BonusMaxHealth;
             BonusAttack = stats.BonusAttack;
             BonusDefence = stats.BonusDefence;
@@ -50,7 +56,11 @@ public static class PlayerSession
             : progress.GetComponent<CharacterStats>();
 
         if (stats != null)
+        {
+            // 先套加成（会把血填满），再把血量还原成传送前的值
             stats.ApplyBonuses(BonusHealth, BonusAttack, BonusDefence);
+            stats.SetCurHealth(CurHealth);
+        }
 
         progress.RestoreState(Level, Exp);
     }
@@ -61,6 +71,8 @@ public static class PlayerSession
         HasData = false;
         Level = 1;
         Exp = 0;
+        CurHealth = 0;
+        MaxHealth = 0;
         BonusHealth = 0;
         BonusAttack = 0;
         BonusDefence = 0;

@@ -149,6 +149,13 @@ public class CharacterStats : MonoBehaviour
 
         if (OnHealthChanged != null) OnHealthChanged(curHealth);
     }
+
+    /// <summary>直接设置当前血量（跨场景恢复血量用，会夹在上限内）。</summary>
+    public void SetCurHealth(int value)
+    {
+        curHealth = Mathf.Clamp(value, 0, MaxHealth);
+        if (OnHealthChanged != null) OnHealthChanged(curHealth);
+    }
     #endregion
 
     #region ReadAttackData

@@ -68,6 +68,19 @@ public class PlayerController : MonoBehaviour
         MouseManager.instance.OnMouseClicked += MoveToPosition;
         MouseManager.instance.OnEnemyClicked += AttackEvent;
         MouseManager.instance.OnRockClicked += AttackRock;
+        MouseManager.instance.OnPortalClicked += MoveToPortal;
+    }
+
+    /// <summary>点击传送门：走到门的位置（靠近后由 Portal 自己触发传送）。</summary>
+    private void MoveToPortal(GameObject portal)
+    {
+        if (portal == null) return;
+
+        // 目的地取门的水平位置，高度用玩家自己的，避免 SetDestination 采样不到导航网格
+        Vector3 target = portal.transform.position;
+        target.y = transform.position.y;
+
+        MoveToPosition(target);
     }
 
     // 受击 / 死亡表现：由 CharacterStats 的事件驱动

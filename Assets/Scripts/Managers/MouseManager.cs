@@ -14,6 +14,9 @@ public class MouseManager : Singleton<MouseManager>
     /// <summary>点击"可打回的石头"（tag = Rock）</summary>
     public event Action<GameObject> OnRockClicked;
 
+    /// <summary>点击传送门（tag = Portal）</summary>
+    public event Action<GameObject> OnPortalClicked;
+
     public Texture2D point, doorway, attack, target, arrow;
 
     protected override void Awake()
@@ -65,6 +68,10 @@ public class MouseManager : Singleton<MouseManager>
             else if (hitInfo.collider.gameObject.CompareTag("Rock"))
             {
                 OnRockClicked?.Invoke(hitInfo.collider.gameObject);
+            }
+            else if (hitInfo.collider.gameObject.CompareTag("Portal"))
+            {
+                OnPortalClicked?.Invoke(hitInfo.collider.gameObject);
             }
         } 
     }
