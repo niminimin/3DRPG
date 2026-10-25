@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: GolemDataSO
   m_EditorClassIdentifier: 
   maxHealth: 200
-  baseDefence: 8
+  baseDefence: 10
   expReward: 400

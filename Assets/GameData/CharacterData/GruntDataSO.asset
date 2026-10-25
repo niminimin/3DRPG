@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3facfbde933a7414b84d52d6ba229650, type: 3}
   m_Name: GruntDataSO
   m_EditorClassIdentifier: 
-  maxHealth: 55
-  baseDefence: 4
+  maxHealth: 60
+  baseDefence: 6
   expReward: 120
