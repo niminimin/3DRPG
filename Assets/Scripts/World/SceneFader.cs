@@ -16,6 +16,7 @@ public class SceneFader : Singleton<SceneFader>
     public Color fadeColor = Color.black;
 
     private CanvasGroup group;
+    private Image fadeImage;
 
     protected override void Awake()
     {
@@ -47,6 +48,7 @@ public class SceneFader : Singleton<SceneFader>
         Image img = imgGO.GetComponent<Image>();
         img.color = fadeColor;
         img.raycastTarget = false;
+        fadeImage = img;
 
         RectTransform rt = imgGO.GetComponent<RectTransform>();
         rt.anchorMin = Vector2.zero;
@@ -57,7 +59,15 @@ public class SceneFader : Singleton<SceneFader>
 
     private void SetAlpha(float a)
     {
-        if (group != null) group.alpha = a;
+        if (group == null) return;
+
+        group.alpha = a;
+
+        // 只要不是全透明就挡住鼠标：防止黑屏期间误点地面/敌人
+        group.blocksRaycasts = a > 0.01f;
+
+        // 完全透明时关掉 Image，省一次全屏绘制（开启要在 alpha 变正之前）
+        if (fadeImage != null) fadeImage.enabled = a > 0.001f;
     }
 
     /// <summary>淡到全黑。</summary>
