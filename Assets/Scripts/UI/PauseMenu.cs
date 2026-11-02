@@ -36,6 +36,9 @@ public class PauseMenu : Singleton<PauseMenu>
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
+        // 清掉游戏里设置的自定义光标（否则暂停后还显示"移动/攻击"图标）
+        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+
         if (titleText != null) titleText.text = "暂停";
     }
 
@@ -44,6 +47,8 @@ public class PauseMenu : Singleton<PauseMenu>
         SetOpen(false);
         Time.timeScale = 1f;
         Cursor.visible = true;
+
+        // 恢复后交给 MouseManager 下一帧重新设置光标
     }
 
     private void SetOpen(bool open)
@@ -108,7 +113,9 @@ public class PauseMenu : Singleton<PauseMenu>
         EnsureEventSystem();
 
         // 根 Canvas
-        GameObject canvasGO = new GameObject("PauseCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup));
+        // 注意：必须有 GraphicRaycaster，否则按钮收不到鼠标事件（点不动）
+        GameObject canvasGO = new GameObject("PauseCanvas",
+            typeof(RectTransform), typeof(Canvas), typeof(CanvasGroup), typeof(GraphicRaycaster));
         canvasGO.transform.SetParent(transform, false);
 
         Canvas canvas = canvasGO.GetComponent<Canvas>();
@@ -205,12 +212,11 @@ public class PauseMenu : Singleton<PauseMenu>
         rt.offsetMax = Vector2.zero;
     }
 
-    /// <summary>按钮需要 EventSystem，没有就建一个。</summary>
+    /// <summary>按钮需要 EventSystem，没有就建一个（Boot 常驻，不需要 DontDestroyOnLoad）。</summary>
     private static void EnsureEventSystem()
     {
         if (FindObjectOfType<EventSystem>() != null) return;
 
-        GameObject esGO = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-        DontDestroyOnLoad(esGO);
+        new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
     }
 }
