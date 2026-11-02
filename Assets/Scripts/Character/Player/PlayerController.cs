@@ -196,19 +196,24 @@ public class PlayerController : MonoBehaviour
         {
             agent.isStopped = true;
 
-            // Warp 会把 Agent 直接放到导航网格上的目标点，比改 transform 更稳
-            if (agent.enabled && agent.isOnNavMesh)
+            // 标准做法：先关 Agent → 改 Transform → 再开 Agent，
+            // 这样 Agent 会重新吸附到新位置的 NavMesh 上（世界场景刚加载完时尤其重要）
+            agent.enabled = false;
+        }
+
+        transform.position = position;
+        transform.rotation = rotation;
+
+        if (agent != null)
+        {
+            agent.enabled = true;
+
+            if (agent.isOnNavMesh)
                 agent.Warp(position);
-            else
-                transform.position = position;
 
             agent.ResetPath();
             agent.isStopped = false;
         }
-
-        transform.rotation = rotation;
-
-        if (agent != null) agent.transform.rotation = rotation;
     }
 
     private void AttackEvent(GameObject target)

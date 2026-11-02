@@ -69,6 +69,52 @@ public class BossHealthBarUI : MonoBehaviour
         SyncImmediate(target.CurHealth);
     }
 
+    /// <summary>
+    /// 世界场景是叠加加载/卸载的，Boss 会被销毁重建。
+    /// 所以每帧检查：目标没了就重新找一个带 BossMarker 的。
+    /// </summary>
+    private void UpdateTargetIfNeeded()
+    {
+        // 玩家常驻在 Boot，引用可能没配；没配就找一次
+        if (player == null)
+        {
+            PlayerController pc = FindObjectOfType<PlayerController>();
+            if (pc != null) player = pc.transform;
+        }
+
+        if (target != null) return;
+
+        BossMarker marker = FindObjectOfType<BossMarker>();
+        if (marker == null || marker.stats == null) return;
+
+        BindTo(marker.stats, marker.displayName);
+    }
+
+    private void BindTo(CharacterStats stats, string displayName)
+    {
+        if (stats == null) return;
+
+        if (target != null)
+        {
+            target.OnHealthChanged -= Refresh;
+            target.OnDead -= HandleDead;
+        }
+
+        target = stats;
+        target.OnHealthChanged += Refresh;
+        target.OnDead += HandleDead;
+
+        dead = false;
+        deadTimer = 0f;
+
+        if (nameText != null)
+            nameText.text = !string.IsNullOrEmpty(displayName)
+                ? displayName
+                : (!string.IsNullOrEmpty(bossName) ? bossName : stats.name);
+
+        SyncImmediate(stats.CurHealth);
+    }
+
     private void OnDisable()
     {
         if (target == null) return;
@@ -95,6 +141,9 @@ public class BossHealthBarUI : MonoBehaviour
     private void Update()
     {
         if (group == null) return;
+
+        // 世界重新加载后 Boss 是新的实例，重绑一次
+        UpdateTargetIfNeeded();
 
         // 死亡后计时淡出
         if (dead)

@@ -37,7 +37,7 @@ public class Portal : MonoBehaviour
 
     private void Update()
     {
-        if (SceneFader.instance == null || SceneFader.instance.IsBusy) return;
+        if (WorldLoader.instance == null || WorldLoader.instance.IsBusy) return;
         if (Time.time < readyTime) return;
         if (string.IsNullOrEmpty(targetScene)) return;
 
@@ -54,7 +54,7 @@ public class Portal : MonoBehaviour
         if (Vector3.Distance(a, b) <= activateRadius)
         {
             readyTime = Time.time + cooldown;
-            SceneFader.instance.Teleport(targetScene, entryId);
+            WorldLoader.instance.LoadWorld(targetScene, entryId);
         }
     }
 

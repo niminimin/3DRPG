@@ -633,6 +633,7 @@ GameObject:
   - component: {fileID: 3404167174321640560}
   - component: {fileID: 2023012067675324162}
   - component: {fileID: 2630894594643152168}
+  - component: {fileID: 7266597703484226736}
   m_Layer: 7
   m_Name: Golem
   m_TagString: Enemy
@@ -822,6 +823,20 @@ MonoBehaviour:
     type: 3}
   headHeight: 3.7
   spread: 0.25
+--- !u!114 &7266597703484226736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8007237374805338159}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92be3a0f9fe42b44c82b2feb145e9044, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stats: {fileID: 3404167174321640560}
+  displayName: "\u5CA9\u77F3\u5DE8\u50CF / Rock Golem"
 --- !u!1 &8104804403868294776
 GameObject:
   m_ObjectHideFlags: 0
