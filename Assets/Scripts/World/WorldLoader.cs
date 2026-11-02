@@ -78,6 +78,53 @@ public class WorldLoader : Singleton<WorldLoader>
         StartCoroutine(LoadWorldRoutine(sceneName, targetDoorId));
     }
 
+    // ==================== 路径 3：读档 ====================
+    /// <summary>读档：加载存档里的场景，并把玩家放回存档位置。</summary>
+    public void LoadFromSave(SaveData data)
+    {
+        if (IsBusy) return;
+        if (data == null) return;
+
+        StartCoroutine(LoadFromSaveRoutine(data));
+    }
+
+    private IEnumerator LoadFromSaveRoutine(SaveData data)
+    {
+        IsBusy = true;
+
+        if (SceneFader.instance != null)
+            yield return SceneFader.instance.FadeOut();
+
+        string scene = string.IsNullOrEmpty(data.sceneName) ? defaultWorld : data.sceneName;
+        yield return LoadWorldScene(scene);
+
+        if (!string.IsNullOrEmpty(CurrentWorld))
+        {
+            if (player == null) player = FindObjectOfType<PlayerController>();
+
+            if (player != null)
+            {
+                Vector3 pos = SnapToNavMesh(data.playerPosition);
+                player.TeleportTo(pos, Quaternion.Euler(0f, data.playerYaw, 0f));
+            }
+
+            if (SaveManager.instance != null) SaveManager.instance.ApplyPlayerStats();
+        }
+
+        if (SceneFader.instance != null)
+            yield return SceneFader.instance.FadeIn();
+
+        IsBusy = false;
+    }
+
+    // ==================== 路径 4：重开一局 ====================
+    /// <summary>新游戏：重新加载默认世界并回到出生点。</summary>
+    public void RestartGame()
+    {
+        if (IsBusy) return;
+        StartCoroutine(LoadInitialRoutine(defaultWorld));
+    }
+
     private IEnumerator LoadWorldRoutine(string sceneName, string targetDoorId)
     {
         IsBusy = true;
@@ -130,7 +177,12 @@ public class WorldLoader : Singleton<WorldLoader>
         yield return null;
 
         // 4) 只扫这一场景的门，建索引
-        BuildDoorIndex(SceneManager.GetSceneByName(sceneName));
+        Scene loaded = SceneManager.GetSceneByName(sceneName);
+        BuildDoorIndex(loaded);
+
+        // 5) 清掉已经死过的敌人（存档里的状态）
+        if (SaveManager.instance != null)
+            SaveManager.instance.ApplyWorldState(loaded);
     }
 
     /// <summary>遍历新场景里的门，建立 id → Portal 的索引（一次 O(n)，之后 O(1)）。</summary>

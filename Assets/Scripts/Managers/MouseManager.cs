@@ -26,6 +26,9 @@ public class MouseManager : Singleton<MouseManager>
 
     private void Update()
     {
+        // 暂停（timeScale = 0）时不处理鼠标：菜单要能用鼠标点按钮
+        if (Time.timeScale <= 0f) return;
+
         SetCursorTexture();
         MouseControl();
     }

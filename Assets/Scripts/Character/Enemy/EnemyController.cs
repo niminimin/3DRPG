@@ -163,6 +163,11 @@ public abstract class EnemyController : MonoBehaviour
         Combat.CancelPendingAttack();       // 还没命中的这一刀作废
         SwitchState(EnemyState.DEAD);       // 唯一入口
 
+        // 记进存档内存：换场景回来它不会再刷新（不落盘，除非玩家存档）
+        SaveIdentity identity = GetComponent<SaveIdentity>();
+        if (identity != null && identity.HasId && SaveManager.instance != null)
+            SaveManager.instance.MarkEnemyDead(identity.id);
+
         // 给玩家发经验（数值来自这个敌人自己的 CharacterDataSO.expReward）
         if (characterStats != null && PlayerProgress.instance != null)
             PlayerProgress.instance.AddExp(characterStats.ExpReward);
