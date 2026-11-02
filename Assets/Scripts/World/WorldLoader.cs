@@ -31,9 +31,6 @@ public class WorldLoader : Singleton<WorldLoader>
 
     private PlayerController player;
 
-    // 当前世界场景的门索引：id → Portal
-    private readonly Dictionary<string, Portal> doors = new Dictionary<string, Portal>();
-
     private void Start()
     {
         player = FindObjectOfType<PlayerController>();
@@ -148,13 +145,14 @@ public class WorldLoader : Singleton<WorldLoader>
         IsBusy = false;
     }
 
-    // ==================== 公共：加载场景 + 建门索引 ====================
+    // ==================== 公共：加载场景 ====================
     private IEnumerator LoadWorldScene(string sceneName)
     {
         // 1) 卸载旧世界
         if (!string.IsNullOrEmpty(CurrentWorld))
         {
-            doors.Clear();
+            // 兜底：正常情况上门被销毁时会在 OnDestroy 里自己注销
+            PortalRegistry.Clear();
 
             AsyncOperation unload = SceneManager.UnloadSceneAsync(CurrentWorld);
             while (unload != null && !unload.isDone) yield return null;
@@ -173,49 +171,15 @@ public class WorldLoader : Singleton<WorldLoader>
         while (!op.isDone) yield return null;
         CurrentWorld = sceneName;
 
-        // 3) 等新场景的 Awake/Start 跑完
+        // 3) 等新场景的 Awake/Start 跑完（门会在这期间自己注册进 PortalRegistry）
         yield return null;
 
-        // 4) 只扫这一场景的门，建索引
         Scene loaded = SceneManager.GetSceneByName(sceneName);
-        BuildDoorIndex(loaded);
+        Debug.Log("[WorldLoader] 场景 " + sceneName + " 已加载，注册的门 " + PortalRegistry.Count + " 扇");
 
-        // 5) 清掉已经死过的敌人（存档里的状态）
+        // 4) 清掉已经死过的敌人（存档里的状态）
         if (SaveManager.instance != null)
             SaveManager.instance.ApplyWorldState(loaded);
-    }
-
-    /// <summary>遍历新场景里的门，建立 id → Portal 的索引（一次 O(n)，之后 O(1)）。</summary>
-    private void BuildDoorIndex(Scene scene)
-    {
-        doors.Clear();
-
-        if (!scene.IsValid()) return;
-
-        foreach (GameObject root in scene.GetRootGameObjects())
-        {
-            // 只在这个场景的根物体下找，不会扫到 Boot
-            Portal[] found = root.GetComponentsInChildren<Portal>(true);
-
-            foreach (Portal portal in found)
-            {
-                if (string.IsNullOrEmpty(portal.id))
-                {
-                    Debug.LogWarning("[WorldLoader] 场景 " + scene.name + " 里有门没填 id：" + portal.name, portal);
-                    continue;
-                }
-
-                if (doors.ContainsKey(portal.id))
-                {
-                    Debug.LogError("[WorldLoader] 场景 " + scene.name + " 里门 id 重复：" + portal.id, portal);
-                    continue;
-                }
-
-                doors.Add(portal.id, portal);
-            }
-        }
-
-        Debug.Log("[WorldLoader] 场景 " + scene.name + " 的门索引建立完成，共 " + doors.Count + " 扇");
     }
 
     // ==================== 落点计算 ====================
@@ -240,9 +204,8 @@ public class WorldLoader : Singleton<WorldLoader>
 
     private Portal FindDoor(string doorId)
     {
-        if (string.IsNullOrEmpty(doorId)) return null;
-        doors.TryGetValue(doorId, out Portal door);
-        return door;
+        // 门在 Awake 时已经把自己登记进 PortalRegistry，这里 O(1) 查表
+        return PortalRegistry.Find(doorId);
     }
 
     /// <summary>把点投到导航网格上，避免落在半空/墙里。</summary>

@@ -39,6 +39,17 @@ public class Portal : MonoBehaviour
     private float readyTime;
     private Transform player;
 
+    private void Awake()
+    {
+        // 自己登记进注册表：加载场景后不用再遍历整棵场景树找门
+        PortalRegistry.Register(this);
+    }
+
+    private void OnDestroy()
+    {
+        PortalRegistry.Unregister(this);
+    }
+
     private void Start()
     {
         // 开局先给一倍冷却，避免刚落地就被传送走
