@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -11,12 +12,20 @@ using UnityEngine.SceneManagement;
 ///   内存层：敌人一死就立刻记录 → 换场景回来，它还死着
 ///   磁盘层：只有显式"保存存档"才写文件
 /// 所以：打死敌人 → 没存档就退出 → 读档 → 它还活着（未保存的进度该丢）
+///
+/// 玩家死亡：等死亡动画播完 → 自动读档（没有存档就重新开始）。
 /// </summary>
 public class SaveManager : Singleton<SaveManager>
 {
     [Header("存档文件")]
     [Tooltip("存档文件名（放在 Application.persistentDataPath 下）")]
     public string fileName = "save_0.json";
+
+    [Header("死亡处理")]
+    [Tooltip("玩家死亡后等多久再读档（给死亡动画留时间）")]
+    public float respawnDelay = 2.5f;
+
+    private Coroutine deathRoutine;
 
     /// <summary>内存里的当前存档数据。</summary>
     public SaveData Data { get; private set; } = new SaveData();
@@ -29,6 +38,51 @@ public class SaveManager : Singleton<SaveManager>
     public bool HasSaveFile
     {
         get { return File.Exists(SavePath); }
+    }
+
+    private void Start()
+    {
+        // GameManager 在 Boot 的 Awake 里已经设好 instance，这里订阅是安全的
+        if (GameManager.instance != null)
+            GameManager.instance.OnPlayerDied += HandlePlayerDied;
+        else
+            Debug.LogWarning("[SaveManager] 找不到 GameManager，玩家死亡不会自动读档", this);
+    }
+
+    protected override void OnDestroy()
+    {
+        if (GameManager.instance != null)
+            GameManager.instance.OnPlayerDied -= HandlePlayerDied;
+
+        base.OnDestroy();
+    }
+
+    // ==================== 玩家死亡 → 自动读档 ====================
+    private void HandlePlayerDied()
+    {
+        if (deathRoutine != null) return;
+        deathRoutine = StartCoroutine(DeathRoutine());
+    }
+
+    private IEnumerator DeathRoutine()
+    {
+        // 用不受 timeScale 影响的等待，死亡时万一是暂停状态也能走
+        yield return new WaitForSecondsRealtime(respawnDelay);
+
+        Time.timeScale = 1f;
+
+        if (HasSaveFile)
+        {
+            Debug.Log("[SaveManager] 玩家死亡 → 读取最近存档");
+            Load();
+        }
+        else
+        {
+            Debug.Log("[SaveManager] 玩家死亡且没有存档 → 重新开始");
+            NewGame();
+        }
+
+        deathRoutine = null;
     }
 
     // ==================== 内存层：敌人状态 ====================
@@ -111,8 +165,14 @@ public class SaveManager : Singleton<SaveManager>
 
         progress.RestoreState(Data.level, Data.exp);
 
+        // 玩家在 Boot 里是常驻的：读档时他可能正处于"死亡"状态，必须先复活
+        PlayerController player = FindObjectOfType<PlayerController>();
+        if (player != null) player.Revive();
+
         CharacterStats stats = progress.stats;
-        if (stats != null) stats.SetCurHealth(Data.curHealth);
+        if (stats != null) stats.Revive(Mathf.Max(1, Data.curHealth));
+
+        if (GameManager.instance != null) GameManager.instance.ResetGameOver();
     }
 
     // ==================== 磁盘层 ====================
@@ -174,11 +234,29 @@ public class SaveManager : Singleton<SaveManager>
         return true;
     }
 
-    /// <summary>新游戏：清空内存 + 删除磁盘存档 + 重新加载默认世界。</summary>
+    /// <summary>新游戏：清空内存 + 删除磁盘存档 + 玩家回到 1 级满血 + 重新加载默认世界。</summary>
     public void NewGame()
     {
         Data = new SaveData();
         DeleteSaveFile();
+
+        // 玩家是常驻对象：必须显式复位，否则会带着"死亡/高等级/残血"进入新游戏
+        PlayerController player = FindObjectOfType<PlayerController>();
+        if (player != null) player.Revive();
+
+        PlayerProgress progress = PlayerProgress.instance;
+        if (progress != null)
+        {
+            if (progress.stats != null)
+            {
+                progress.stats.ApplyBonuses(0, 0, 0);      // 清掉等级加成
+                progress.stats.Revive(progress.stats.MaxHealth);
+            }
+
+            progress.RestoreState(1, 0);
+        }
+
+        if (GameManager.instance != null) GameManager.instance.ResetGameOver();
 
         if (WorldLoader.instance != null)
             WorldLoader.instance.RestartGame();

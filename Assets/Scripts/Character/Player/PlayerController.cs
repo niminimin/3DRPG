@@ -163,6 +163,54 @@ public class PlayerController : MonoBehaviour
         SwitchAnimation();
     }
 
+    /// <summary>
+    /// 复活（读档时用）：清掉死亡表现、恢复输入与移动。
+    /// 血量由调用方（SaveManager）通过 CharacterStats.Revive 设置。
+    /// </summary>
+    public void Revive()
+    {
+        CancelLaunch();
+        StopAllCoroutines();
+        CancelPendingAttack();
+
+        attackTarget = null;
+        targetStats = null;
+        rockTarget = null;
+        IsStunned = false;
+
+        if (animator != null)
+        {
+            animator.SetBool("IsDead", false);
+            animator.SetBool("Dizzy", false);
+        }
+
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.enabled = true;
+
+        if (agent != null)
+        {
+            agent.enabled = true;
+            agent.isStopped = false;
+            agent.ResetPath();
+        }
+
+        // 死亡时退订了鼠标事件，这里重新接上（先减后加，避免重复订阅）
+        if (MouseManager.instance != null)
+        {
+            MouseManager.instance.OnMouseClicked -= MoveToPosition;
+            MouseManager.instance.OnEnemyClicked -= AttackEvent;
+            MouseManager.instance.OnRockClicked -= AttackRock;
+            MouseManager.instance.OnPortalClicked -= MoveToPortal;
+
+            MouseManager.instance.OnMouseClicked += MoveToPosition;
+            MouseManager.instance.OnEnemyClicked += AttackEvent;
+            MouseManager.instance.OnRockClicked += AttackRock;
+            MouseManager.instance.OnPortalClicked += MoveToPortal;
+        }
+
+        Debug.Log("[" + name + "] 复活");
+    }
+
     public void SwitchAnimation()
     {
         animator.SetFloat("Speed", agent.velocity.sqrMagnitude);

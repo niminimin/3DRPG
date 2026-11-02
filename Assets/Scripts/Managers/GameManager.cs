@@ -37,6 +37,12 @@ public class GameManager : Singleton<GameManager>
         if (OnPlayerDied != null) OnPlayerDied();
     }
 
+    /// <summary>读档 / 新游戏时清掉"游戏结束"标记，否则之后的死亡不会再广播。</summary>
+    public void ResetGameOver()
+    {
+        IsGameOver = false;
+    }
+
     protected override void OnDestroy()
     {
         if (playerStats != null) playerStats.OnDead -= HandlePlayerDead;

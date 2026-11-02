@@ -156,6 +156,16 @@ public class CharacterStats : MonoBehaviour
         curHealth = Mathf.Clamp(value, 0, MaxHealth);
         if (OnHealthChanged != null) OnHealthChanged(curHealth);
     }
+
+    /// <summary>复活：清掉死亡标记并回血（读档时玩家可能是死的）。</summary>
+    public void Revive(int health)
+    {
+        isDead = false;
+        curHealth = Mathf.Clamp(health, 1, MaxHealth);
+        curDefence = MaxDefence;
+
+        if (OnHealthChanged != null) OnHealthChanged(curHealth);
+    }
     #endregion
 
     #region ReadAttackData
