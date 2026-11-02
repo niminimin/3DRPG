@@ -1,26 +1,30 @@
 using UnityEngine;
 
 /// <summary>
-/// 传送门：玩家走进范围内就传送到目标场景的指定位置。
+/// 传送门：玩家走进范围就传送到目标场景的某扇门前。
 ///
-/// 设计要点（参考 2DAdventure 的 TeleportPoint）：
-///   "落到哪里"由**传送门自己**携带（positionToGo / yawToGo），
-///   加载器只负责加载场景 + 把玩家搬到这个坐标，不去场景里找标记。
+/// 设计（参考 2DAdventure 的 TeleportPoint，但落点不存坐标）：
+///   - 门只记录"去哪 + 找哪扇门"，不记录坐标
+///   - 落点 = 目标门的位置 - 目标门的朝向 × standDistance（由 WorldLoader 现算）
+///   - 一个场景可以有很多门，靠唯一的 id 区分
 ///
-/// 用距离检测而不是 OnTriggerEnter：玩家是 NavMeshAgent + Transform 移动、没有 Rigidbody，
-/// Trigger 事件不会触发。
+/// 用距离检测而不是 OnTriggerEnter：玩家是 NavMeshAgent + Transform 移动、没有 Rigidbody。
 /// </summary>
 public class Portal : MonoBehaviour
 {
+    [Header("身份")]
+    [Tooltip("这扇门在本场景里的唯一名字，别的门靠它找到我")]
+    public string id = "";
+
     [Header("目标")]
-    [Tooltip("目标场景名（要和 Build Settings 里的名字一致）")]
+    [Tooltip("目标场景名（要和 Build Settings 里一致）")]
     public string targetScene = "";
 
-    [Tooltip("到达目标场景后的位置（目标场景的世界坐标）")]
-    public Vector3 positionToGo = Vector3.zero;
+    [Tooltip("目标场景里那扇门的 id")]
+    public string targetDoorId = "";
 
-    [Tooltip("到达后的朝向（Y 轴角度，180 = 面向 -Z）")]
-    public float yawToGo = 180f;
+    [Tooltip("到达后站在目标门前多远（米）")]
+    public float standDistance = 2.5f;
 
     [Header("触发")]
     [Tooltip("玩家进入这个半径内就传送")]
@@ -60,19 +64,37 @@ public class Portal : MonoBehaviour
         if (Vector3.Distance(a, b) <= activateRadius)
         {
             readyTime = Time.time + cooldown;
-            WorldLoader.instance.LoadWorld(targetScene, positionToGo, yawToGo);
+            WorldLoader.instance.LoadWorld(targetScene, targetDoorId);
         }
+    }
+
+    /// <summary>到达点：门前一 standDistance 米处。</summary>
+    public Vector3 GetArrivalPosition()
+    {
+        return transform.position - transform.forward * standDistance;
+    }
+
+    /// <summary>到达朝向：背对门（像刚从门里走出来）。</summary>
+    public Quaternion GetArrivalRotation()
+    {
+        return Quaternion.LookRotation(-transform.forward, Vector3.up);
     }
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = new Color(0.2f, 0.9f, 1f, 0.5f);
+        // 触发范围
+        Gizmos.color = new Color(0.2f, 0.9f, 1f, 0.4f);
         Vector3 p = transform.position; p.y = 0f;
         Gizmos.DrawWireSphere(p, activateRadius);
 
-        // 到达点
+        // 到达点（本门作为目标门时，玩家会出现在这里）
+        Vector3 arrive = GetArrivalPosition();
         Gizmos.color = new Color(0.2f, 1f, 0.4f, 0.9f);
-        Gizmos.DrawWireSphere(positionToGo + Vector3.up * 0.5f, 0.5f);
-        Gizmos.DrawRay(positionToGo + Vector3.up * 0.5f, Quaternion.Euler(0f, yawToGo, 0f) * Vector3.forward * 2f);
+        Gizmos.DrawWireSphere(arrive + Vector3.up * 0.5f, 0.4f);
+        Gizmos.DrawRay(arrive + Vector3.up * 0.5f, -transform.forward * 1.5f);
+
+#if UNITY_EDITOR
+        UnityEditor.Handles.Label(transform.position + Vector3.up * 2.5f, "id: " + id);
+#endif
     }
 }

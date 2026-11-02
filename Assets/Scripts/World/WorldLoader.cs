@@ -1,14 +1,17 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 跨场景加载器（常驻在 Boot 场景）。
 /// 世界场景用 Additive 叠加加载/卸载，玩家、UI、相机永远不销毁。
 ///
-/// 设计要点（参考 2DAdventure 的 SceneLoad）：
-///   加载器不认识"落点"，它只负责"加载场景 + 把玩家搬到 (position, yaw)"。
-///   具体落到哪里，由**调用方**（传送门）在请求里带过来。
-///   只有第一次进游戏用默认出生点 startPosition。
+/// 两条路径刻意分开：
+///   LoadInitial() —— 开局/读档：加载世界 + 放到出生点，不走"找门"
+///   LoadWorld()   —— 走传送门：加载世界 + 放到目标门前
+///
+/// 找门不每帧遍历：场景加载后建一次 id → Portal 的索引表，之后 O(1) 查询。
 /// </summary>
 public class WorldLoader : Singleton<WorldLoader>
 {
@@ -16,7 +19,7 @@ public class WorldLoader : Singleton<WorldLoader>
     [Tooltip("游戏开始后加载的第一个内容场景")]
     public string defaultWorld = "SampleScene";
 
-    [Header("默认出生点（只用于第一次进游戏）")]
+    [Header("出生点（只用于开局）")]
     public Vector3 startPosition = Vector3.zero;
     public float startYaw = 0f;
 
@@ -28,6 +31,9 @@ public class WorldLoader : Singleton<WorldLoader>
 
     private PlayerController player;
 
+    // 当前世界场景的门索引：id → Portal
+    private readonly Dictionary<string, Portal> doors = new Dictionary<string, Portal>();
+
     private void Start()
     {
         player = FindObjectOfType<PlayerController>();
@@ -38,68 +44,162 @@ public class WorldLoader : Singleton<WorldLoader>
             return;
         }
 
-        // 第一次进游戏：用默认出生点，不淡入淡出
-        StartCoroutine(LoadRoutine(defaultWorld, startPosition, startYaw, false));
+        StartCoroutine(LoadInitialRoutine(defaultWorld));
     }
 
-    /// <summary>
-    /// 切换内容场景。
-    /// 落点由调用方决定（传送门把自己配的 positionToGo 传进来）。
-    /// </summary>
-    public void LoadWorld(string sceneName, Vector3 position, float yaw)
-    {
-        if (IsBusy) return;
-        if (string.IsNullOrEmpty(sceneName)) return;
-
-        StartCoroutine(LoadRoutine(sceneName, position, yaw, true));
-    }
-
-    private IEnumerator LoadRoutine(string sceneName, Vector3 position, float yaw, bool withFade)
+    // ==================== 路径 1：开局 ====================
+    /// <summary>开局加载：不找门，直接放到出生点。</summary>
+    private IEnumerator LoadInitialRoutine(string sceneName)
     {
         IsBusy = true;
 
-        if (withFade && SceneFader.instance != null)
-            yield return SceneFader.instance.FadeOut();
-
-        // 1) 卸载旧世界
-        if (!string.IsNullOrEmpty(CurrentWorld))
+        yield return LoadWorldScene(sceneName);
+        if (string.IsNullOrEmpty(CurrentWorld))
         {
-            AsyncOperation unload = UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(CurrentWorld);
-            while (unload != null && !unload.isDone) yield return null;
-            CurrentWorld = null;
-        }
-
-        // 2) 加载新世界（叠加，不动 Boot）
-        AsyncOperation load = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(
-            sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
-
-        if (load == null)
-        {
-            Debug.LogError("[WorldLoader] 场景加载失败：" + sceneName + "（检查 Build Settings）", this);
-
-            if (withFade && SceneFader.instance != null)
-                yield return SceneFader.instance.FadeIn();
-
             IsBusy = false;
             yield break;
         }
 
-        while (!load.isDone) yield return null;
+        Vector3 spawn = SnapToNavMesh(startPosition);
+        WarpPlayer(spawn, startYaw);
+
+        if (SceneFader.instance != null) SceneFader.instance.Clear();
+
+        IsBusy = false;
+    }
+
+    // ==================== 路径 2：传送 ====================
+    /// <summary>走传送门：加载目标世界，并站到目标门前。</summary>
+    public void LoadWorld(string sceneName, string targetDoorId)
+    {
+        if (IsBusy) return;
+        if (string.IsNullOrEmpty(sceneName)) return;
+
+        StartCoroutine(LoadWorldRoutine(sceneName, targetDoorId));
+    }
+
+    private IEnumerator LoadWorldRoutine(string sceneName, string targetDoorId)
+    {
+        IsBusy = true;
+
+        if (SceneFader.instance != null)
+            yield return SceneFader.instance.FadeOut();
+
+        yield return LoadWorldScene(sceneName);
+        if (string.IsNullOrEmpty(CurrentWorld))
+        {
+            if (SceneFader.instance != null) yield return SceneFader.instance.FadeIn();
+            IsBusy = false;
+            yield break;
+        }
+
+        PlaceBeforeDoor(targetDoorId);
+
+        if (SceneFader.instance != null)
+            yield return SceneFader.instance.FadeIn();
+
+        IsBusy = false;
+    }
+
+    // ==================== 公共：加载场景 + 建门索引 ====================
+    private IEnumerator LoadWorldScene(string sceneName)
+    {
+        // 1) 卸载旧世界
+        if (!string.IsNullOrEmpty(CurrentWorld))
+        {
+            doors.Clear();
+
+            AsyncOperation unload = SceneManager.UnloadSceneAsync(CurrentWorld);
+            while (unload != null && !unload.isDone) yield return null;
+
+            CurrentWorld = null;
+        }
+
+        // 2) 加载新世界（叠加，不动 Boot）
+        AsyncOperation op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        if (op == null)
+        {
+            Debug.LogError("[WorldLoader] 场景加载失败：" + sceneName + "（检查 Build Settings）", this);
+            yield break;
+        }
+
+        while (!op.isDone) yield return null;
         CurrentWorld = sceneName;
 
         // 3) 等新场景的 Awake/Start 跑完
         yield return null;
 
-        // 4) 把玩家搬到调用方指定的位置
-        WarpPlayer(position, yaw);
+        // 4) 只扫这一场景的门，建索引
+        BuildDoorIndex(SceneManager.GetSceneByName(sceneName));
+    }
 
-        // 5) 淡入
-        if (withFade && SceneFader.instance != null)
-            yield return SceneFader.instance.FadeIn();
-        else if (SceneFader.instance != null)
-            SceneFader.instance.Clear();
+    /// <summary>遍历新场景里的门，建立 id → Portal 的索引（一次 O(n)，之后 O(1)）。</summary>
+    private void BuildDoorIndex(Scene scene)
+    {
+        doors.Clear();
 
-        IsBusy = false;
+        if (!scene.IsValid()) return;
+
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            // 只在这个场景的根物体下找，不会扫到 Boot
+            Portal[] found = root.GetComponentsInChildren<Portal>(true);
+
+            foreach (Portal portal in found)
+            {
+                if (string.IsNullOrEmpty(portal.id))
+                {
+                    Debug.LogWarning("[WorldLoader] 场景 " + scene.name + " 里有门没填 id：" + portal.name, portal);
+                    continue;
+                }
+
+                if (doors.ContainsKey(portal.id))
+                {
+                    Debug.LogError("[WorldLoader] 场景 " + scene.name + " 里门 id 重复：" + portal.id, portal);
+                    continue;
+                }
+
+                doors.Add(portal.id, portal);
+            }
+        }
+
+        Debug.Log("[WorldLoader] 场景 " + scene.name + " 的门索引建立完成，共 " + doors.Count + " 扇");
+    }
+
+    // ==================== 落点计算 ====================
+    private void PlaceBeforeDoor(string doorId)
+    {
+        Portal door = FindDoor(doorId);
+
+        if (door == null)
+        {
+            Debug.LogError("[WorldLoader] 场景 " + CurrentWorld + " 里找不到 id=" + doorId + " 的门，玩家留在原地", this);
+            return;
+        }
+
+        Vector3 position = SnapToNavMesh(door.GetArrivalPosition());
+        Quaternion rotation = door.GetArrivalRotation();
+
+        if (player == null) player = FindObjectOfType<PlayerController>();
+        if (player == null) return;
+
+        player.TeleportTo(position, rotation);
+    }
+
+    private Portal FindDoor(string doorId)
+    {
+        if (string.IsNullOrEmpty(doorId)) return null;
+        doors.TryGetValue(doorId, out Portal door);
+        return door;
+    }
+
+    /// <summary>把点投到导航网格上，避免落在半空/墙里。</summary>
+    private Vector3 SnapToNavMesh(Vector3 position)
+    {
+        if (UnityEngine.AI.NavMesh.SamplePosition(position, out UnityEngine.AI.NavMeshHit hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+            return hit.position;
+
+        return position;
     }
 
     private void WarpPlayer(Vector3 position, float yaw)

@@ -377,9 +377,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53af082ec90eab44dab1d22bb48b452b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  id: oasis
   targetScene: SampleScene
-  positionToGo: {x: -7, y: 0.6, z: 18.9}
-  yawToGo: 180
+  targetDoorId: camp
+  standDistance: 2.5
   activateRadius: 2.5
   cooldown: 2
   portalName: "\u56DE\u5230\u8425\u5730"

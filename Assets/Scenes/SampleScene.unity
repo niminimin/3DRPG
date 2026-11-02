@@ -96198,9 +96198,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53af082ec90eab44dab1d22bb48b452b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  id: camp
   targetScene: GreenWorld
-  positionToGo: {x: 0, y: 0.6, z: 2.5}
-  yawToGo: 180
+  targetDoorId: oasis
+  standDistance: 2.5
   activateRadius: 2.5
   cooldown: 2
   portalName: "\u901A\u5F80\u7EFF\u6D32"
