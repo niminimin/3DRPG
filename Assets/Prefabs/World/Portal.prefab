@@ -119,8 +119,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53af082ec90eab44dab1d22bb48b452b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  targetScene: GreenWorld
-  entryId: A
+  targetScene: 
+  positionToGo: {x: 0, y: 0, z: 0}
+  yawToGo: 180
   activateRadius: 2.5
   cooldown: 2
   portalName: "\u901A\u5F80\u7EFF\u6D32"

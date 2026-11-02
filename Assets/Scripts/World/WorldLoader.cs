@@ -1,10 +1,14 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 
 /// <summary>
 /// 跨场景加载器（常驻在 Boot 场景）。
 /// 世界场景用 Additive 叠加加载/卸载，玩家、UI、相机永远不销毁。
+///
+/// 设计要点（参考 2DAdventure 的 SceneLoad）：
+///   加载器不认识"落点"，它只负责"加载场景 + 把玩家搬到 (position, yaw)"。
+///   具体落到哪里，由**调用方**（传送门）在请求里带过来。
+///   只有第一次进游戏用默认出生点 startPosition。
 /// </summary>
 public class WorldLoader : Singleton<WorldLoader>
 {
@@ -12,8 +16,9 @@ public class WorldLoader : Singleton<WorldLoader>
     [Tooltip("游戏开始后加载的第一个内容场景")]
     public string defaultWorld = "SampleScene";
 
-    [Tooltip("初始落点 id")]
-    public string defaultEntryId = "B";
+    [Header("默认出生点（只用于第一次进游戏）")]
+    public Vector3 startPosition = Vector3.zero;
+    public float startYaw = 0f;
 
     /// <summary>正在加载/卸载中（传送门用它防止重复触发）。</summary>
     public bool IsBusy { get; private set; }
@@ -23,16 +28,9 @@ public class WorldLoader : Singleton<WorldLoader>
 
     private PlayerController player;
 
-    protected override void Awake()
-    {
-        base.Awake();
-        Debug.Log("[WorldLoader] Awake 完成，instance 是否已设置 = " + (instance != null));
-    }
-
     private void Start()
     {
         player = FindObjectOfType<PlayerController>();
-        Debug.Log("[WorldLoader] Start，instance 是否为 null = " + (instance == null));
 
         if (string.IsNullOrEmpty(defaultWorld))
         {
@@ -40,19 +38,23 @@ public class WorldLoader : Singleton<WorldLoader>
             return;
         }
 
-        StartCoroutine(LoadRoutine(defaultWorld, defaultEntryId, false));
+        // 第一次进游戏：用默认出生点，不淡入淡出
+        StartCoroutine(LoadRoutine(defaultWorld, startPosition, startYaw, false));
     }
 
-    /// <summary>切换到另一个内容场景（传送门调用）。</summary>
-    public void LoadWorld(string sceneName, string entryId)
+    /// <summary>
+    /// 切换内容场景。
+    /// 落点由调用方决定（传送门把自己配的 positionToGo 传进来）。
+    /// </summary>
+    public void LoadWorld(string sceneName, Vector3 position, float yaw)
     {
         if (IsBusy) return;
         if (string.IsNullOrEmpty(sceneName)) return;
 
-        StartCoroutine(LoadRoutine(sceneName, entryId, true));
+        StartCoroutine(LoadRoutine(sceneName, position, yaw, true));
     }
 
-    private IEnumerator LoadRoutine(string sceneName, string entryId, bool withFade)
+    private IEnumerator LoadRoutine(string sceneName, Vector3 position, float yaw, bool withFade)
     {
         IsBusy = true;
 
@@ -62,7 +64,7 @@ public class WorldLoader : Singleton<WorldLoader>
         // 1) 卸载旧世界
         if (!string.IsNullOrEmpty(CurrentWorld))
         {
-            AsyncOperation unload = SceneManagerUnload(CurrentWorld);
+            AsyncOperation unload = UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(CurrentWorld);
             while (unload != null && !unload.isDone) yield return null;
             CurrentWorld = null;
         }
@@ -88,8 +90,8 @@ public class WorldLoader : Singleton<WorldLoader>
         // 3) 等新场景的 Awake/Start 跑完
         yield return null;
 
-        // 4) 把玩家放到落点
-        WarpPlayer(entryId);
+        // 4) 把玩家搬到调用方指定的位置
+        WarpPlayer(position, yaw);
 
         // 5) 淡入
         if (withFade && SceneFader.instance != null)
@@ -100,12 +102,7 @@ public class WorldLoader : Singleton<WorldLoader>
         IsBusy = false;
     }
 
-    private AsyncOperation SceneManagerUnload(string sceneName)
-    {
-        return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(sceneName);
-    }
-
-    private void WarpPlayer(string entryId)
+    private void WarpPlayer(Vector3 position, float yaw)
     {
         if (player == null) player = FindObjectOfType<PlayerController>();
         if (player == null)
@@ -114,13 +111,6 @@ public class WorldLoader : Singleton<WorldLoader>
             return;
         }
 
-        PortalEntry entry = PortalEntry.Find(entryId);
-        if (entry == null)
-        {
-            Debug.LogWarning("[WorldLoader] 场景 " + CurrentWorld + " 里没有 id=" + entryId + " 的落点", this);
-            return;
-        }
-
-        player.TeleportTo(entry.transform.position, entry.transform.rotation);
+        player.TeleportTo(position, Quaternion.Euler(0f, yaw, 0f));
     }
 }

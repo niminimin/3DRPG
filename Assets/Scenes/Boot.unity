@@ -2240,7 +2240,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultWorld: SampleScene
-  defaultEntryId: B
+  startPosition: {x: 10.4, y: 0.6, z: -15.8}
+  startYaw: 0
 --- !u!4 &1739696515
 Transform:
   m_ObjectHideFlags: 0
