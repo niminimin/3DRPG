@@ -27,6 +27,11 @@ public class MainMenu : MonoBehaviour
         BuildUI();
         RefreshContinueButton();
 
+        // 主菜单用系统默认光标（从游戏里退回来时可能还带着"攻击/移动"图标）
+        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
         // 从游戏里退回主菜单时，黑幕是全黑的 → 这里淡入
         if (SceneFader.instance != null && SceneFader.instance.Alpha > 0.01f)
             yield return SceneFader.instance.FadeIn();

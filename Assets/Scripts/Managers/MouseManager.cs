@@ -24,6 +24,18 @@ public class MouseManager : Singleton<MouseManager>
         base.Awake();       // ★ 必须调用：负责赋值 instance / 处理重复实例
     }
 
+    /// <summary>
+    /// 离开游戏场景（回主菜单）时清掉自定义光标。
+    /// Cursor.SetCursor 是全局状态，MouseManager 被销毁后不会自动恢复，
+    /// 不清的话主菜单会一直显示游戏里的"攻击/移动"图标。
+    /// </summary>
+    private void OnDisable()
+    {
+        Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+    }
+
     private void Update()
     {
         // 暂停（timeScale = 0）时不处理鼠标：菜单要能用鼠标点按钮
