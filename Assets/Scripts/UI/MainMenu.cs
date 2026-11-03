@@ -151,11 +151,12 @@ public class MainMenu : MonoBehaviour
         subText.color = new Color(1f, 1f, 1f, 0.6f);
 
         // 按钮：高 64，中心间距 100 → 按钮之间留 36 像素
-        CreateButton(canvasGO.transform, "新游戏", 120f, OnNewGame, out _);
+        // 整组比标题低一些（第一颗按钮顶部 y=72，副标题底部 y=195，中间留 123 的空白）
+        CreateButton(canvasGO.transform, "新游戏", 40f, OnNewGame, out _);
 
-        continueButton = CreateButton(canvasGO.transform, "继续", 20f, OnContinue, out continueButtonLabel);
+        continueButton = CreateButton(canvasGO.transform, "继续", -60f, OnContinue, out continueButtonLabel);
 
-        CreateButton(canvasGO.transform, "退出", -80f, OnQuit, out _);
+        CreateButton(canvasGO.transform, "退出", -160f, OnQuit, out _);
 
         // 版本号
         Text version = CreateText(canvasGO.transform, "v0.1", 22, new Vector2(0f, -430f), new Vector2(400f, 30f));
