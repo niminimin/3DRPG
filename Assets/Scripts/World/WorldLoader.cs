@@ -35,6 +35,25 @@ public class WorldLoader : Singleton<WorldLoader>
     {
         player = FindObjectOfType<PlayerController>();
 
+        // 主菜单点了"继续"：直接读档（读档流程会自己加载场景并放人）
+        if (LaunchContext.Mode == LaunchContext.LaunchMode.Continue
+            && SaveManager.instance != null && SaveManager.instance.HasSaveFile)
+        {
+            Debug.Log("[WorldLoader] 从主菜单继续游戏 → 读档");
+            SaveManager.instance.Load();
+            return;
+        }
+
+        // 主菜单点了"新游戏"：清内存 + 删存档，再正常开局
+        if (LaunchContext.Mode == LaunchContext.LaunchMode.NewGame && SaveManager.instance != null)
+        {
+            Debug.Log("[WorldLoader] 从主菜单开始新游戏 → 清空存档");
+            SaveManager.instance.ResetData();
+        }
+
+        // 消费掉启动意图，避免重进 Boot 时再次触发
+        LaunchContext.Mode = LaunchContext.LaunchMode.Default;
+
         if (string.IsNullOrEmpty(defaultWorld))
         {
             Debug.LogWarning("[WorldLoader] 没有配置 defaultWorld", this);
@@ -60,7 +79,14 @@ public class WorldLoader : Singleton<WorldLoader>
         Vector3 spawn = SnapToNavMesh(startPosition);
         WarpPlayer(spawn, startYaw);
 
-        if (SceneFader.instance != null) SceneFader.instance.Clear();
+        // 从主菜单进来时黑幕已经是全黑 → 淡入；直接在 Boot 里启动 → 直接透明
+        if (SceneFader.instance != null)
+        {
+            if (SceneFader.instance.Alpha > 0.01f)
+                yield return SceneFader.instance.FadeIn();
+            else
+                SceneFader.instance.Clear();
+        }
 
         IsBusy = false;
     }

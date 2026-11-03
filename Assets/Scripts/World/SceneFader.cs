@@ -3,11 +3,14 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// 全屏黑幕：只负责淡入淡出（常驻在 Boot 场景）。
+/// 全屏黑幕：只负责淡入淡出。
+/// 跨场景保留（主菜单 → Boot → 内容场景都要用到同一块黑幕）。
 /// 真正的加载流程在 WorldLoader 里。
 /// </summary>
 public class SceneFader : Singleton<SceneFader>
 {
+    protected override bool Persistent { get { return true; } }
+
     [Header("淡入淡出")]
     public float fadeOutTime = 0.35f;
     public float fadeInTime = 0.35f;
@@ -55,6 +58,12 @@ public class SceneFader : Singleton<SceneFader>
         rt.anchorMax = Vector2.one;
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
+    }
+
+    /// <summary>当前黑幕不透明度（0 = 全透明）。</summary>
+    public float Alpha
+    {
+        get { return group != null ? group.alpha : 0f; }
     }
 
     private void SetAlpha(float a)

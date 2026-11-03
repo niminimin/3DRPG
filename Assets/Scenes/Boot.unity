@@ -666,8 +666,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1877694, y: 0.00000002927224, z: -0.0000000055959655, w: 0.98221314}
-  m_LocalPosition: {x: 10.400001, y: 6.33, z: -27.470001}
+  m_LocalRotation: {x: 0.1878099, y: -0, z: -0, w: 0.98220545}
+  m_LocalPosition: {x: 10.4, y: 6.33, z: -27.47}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1036,6 +1036,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fileName: save_0.json
+  respawnDelay: 2.5
 --- !u!4 &882360548
 Transform:
   m_ObjectHideFlags: 0

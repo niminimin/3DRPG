@@ -234,11 +234,20 @@ public class SaveManager : Singleton<SaveManager>
         return true;
     }
 
-    /// <summary>新游戏：清空内存 + 删除磁盘存档 + 玩家回到 1 级满血 + 重新加载默认世界。</summary>
-    public void NewGame()
+    /// <summary>
+    /// 只清数据（内存 + 磁盘），不碰场景。
+    /// Boot 启动时还没有世界，只能用它；真正"重开一局"用 NewGame()。
+    /// </summary>
+    public void ResetData()
     {
         Data = new SaveData();
         DeleteSaveFile();
+    }
+
+    /// <summary>新游戏：清空内存 + 删除磁盘存档 + 玩家回到 1 级满血 + 重新加载默认世界。</summary>
+    public void NewGame()
+    {
+        ResetData();
 
         // 玩家是常驻对象：必须显式复位，否则会带着"死亡/高等级/残血"进入新游戏
         PlayerController player = FindObjectOfType<PlayerController>();

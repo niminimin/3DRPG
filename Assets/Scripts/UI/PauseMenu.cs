@@ -107,6 +107,23 @@ public class PauseMenu : Singleton<PauseMenu>
 #endif
     }
 
+    /// <summary>回主菜单：先把时间恢复，再淡出切场景。</summary>
+    private void OnMainMenu()
+    {
+        Time.timeScale = 1f;
+        SetOpen(false);
+        StartCoroutine(BackToMenuRoutine());
+    }
+
+    private System.Collections.IEnumerator BackToMenuRoutine()
+    {
+        if (SceneFader.instance != null)
+            yield return SceneFader.instance.FadeOut();
+
+        UnityEngine.SceneManagement.SceneManager.LoadScene(
+            "MainMenu", UnityEngine.SceneManagement.LoadSceneMode.Single);
+    }
+
     // ==================== UI 生成 ====================
     private void BuildUI()
     {
@@ -143,19 +160,20 @@ public class PauseMenu : Singleton<PauseMenu>
         panelRT.anchorMin = new Vector2(0.5f, 0.5f);
         panelRT.anchorMax = new Vector2(0.5f, 0.5f);
         panelRT.pivot = new Vector2(0.5f, 0.5f);
-        panelRT.sizeDelta = new Vector2(420f, 460f);
+        panelRT.sizeDelta = new Vector2(420f, 540f);
         panelRT.anchoredPosition = Vector2.zero;
 
         // 标题
-        titleText = CreateText(panel.transform, "暂停", 34, new Vector2(0f, 170f), new Vector2(360f, 50f));
+        titleText = CreateText(panel.transform, "暂停", 34, new Vector2(0f, 210f), new Vector2(360f, 50f));
         titleText.fontStyle = FontStyle.Bold;
 
         // 按钮
-        CreateButton(panel.transform, "继续", 110f, Resume);
-        CreateButton(panel.transform, "保存", 45f, OnSave);
-        CreateButton(panel.transform, "读取", -20f, OnLoad);
-        CreateButton(panel.transform, "新游戏", -85f, OnNewGame);
-        CreateButton(panel.transform, "退出游戏", -150f, OnQuit);
+        CreateButton(panel.transform, "继续", 130f, Resume);
+        CreateButton(panel.transform, "保存", 62f, OnSave);
+        CreateButton(panel.transform, "读取", -6f, OnLoad);
+        CreateButton(panel.transform, "新游戏", -74f, OnNewGame);
+        CreateButton(panel.transform, "回主菜单", -142f, OnMainMenu);
+        CreateButton(panel.transform, "退出游戏", -210f, OnQuit);
     }
 
     private void CreateButton(Transform parent, string label, float y, UnityEngine.Events.UnityAction action)
