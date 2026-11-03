@@ -203,6 +203,12 @@ public class WorldLoader : Singleton<WorldLoader>
         Scene loaded = SceneManager.GetSceneByName(sceneName);
         Debug.Log("[WorldLoader] 场景 " + sceneName + " 已加载，注册的门 " + PortalRegistry.Count + " 扇");
 
+        // 3.5) 把内容场景设为"激活场景"：
+        //      天空盒、环境光、雾这些 RenderSettings 是跟着激活场景走的，
+        //      不设的话游戏里一直用 Boot 的灯光设置，内容场景调好的光照全被忽略。
+        if (loaded.IsValid())
+            SceneManager.SetActiveScene(loaded);
+
         // 4) 清掉已经死过的敌人（存档里的状态）
         if (SaveManager.instance != null)
             SaveManager.instance.ApplyWorldState(loaded);
