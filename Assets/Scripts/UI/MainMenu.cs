@@ -11,8 +11,8 @@ using UnityEngine.UI;
 public class MainMenu : MonoBehaviour
 {
     [Header("显示")]
-    public string title = "3D RPG";
-    public string subTitle = "M_Studio Style Demo";
+    public string title = "";
+    public string subTitle = "";
 
     [Header("目标场景")]
     public string bootSceneName = "Boot";
@@ -150,12 +150,12 @@ public class MainMenu : MonoBehaviour
         Text subText = CreateText(canvasGO.transform, subTitle, 28, new Vector2(0f, 215f), new Vector2(900f, 40f));
         subText.color = new Color(1f, 1f, 1f, 0.6f);
 
-        // 按钮
-        CreateButton(canvasGO.transform, "新游戏", 40f, OnNewGame, out _);
+        // 按钮：高 64，中心间距 100 → 按钮之间留 36 像素
+        CreateButton(canvasGO.transform, "新游戏", 120f, OnNewGame, out _);
 
-        continueButton = CreateButton(canvasGO.transform, "继续", -40f, OnContinue, out continueButtonLabel);
+        continueButton = CreateButton(canvasGO.transform, "继续", 20f, OnContinue, out continueButtonLabel);
 
-        CreateButton(canvasGO.transform, "退出", -120f, OnQuit, out _);
+        CreateButton(canvasGO.transform, "退出", -80f, OnQuit, out _);
 
         // 版本号
         Text version = CreateText(canvasGO.transform, "v0.1", 22, new Vector2(0f, -430f), new Vector2(400f, 30f));
@@ -208,7 +208,7 @@ public class MainMenu : MonoBehaviour
         RectTransform rt = btnGO.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.sizeDelta = size ?? new Vector2(360f, 72f);
+        rt.sizeDelta = size ?? new Vector2(360f, 64f);
         rt.anchoredPosition = offset ?? new Vector2(0f, y);
 
         Button btn = btnGO.GetComponent<Button>();
