@@ -181,13 +181,16 @@ public class MainMenu : MonoBehaviour
         RectTransform rt = panel.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.sizeDelta = new Vector2(720f, 300f);
+        rt.sizeDelta = new Vector2(760f, 320f);
 
         Text msg = CreateText(panel.transform, "已有存档，开始新游戏会覆盖它。\n确定要重新开始吗？", 32,
-            new Vector2(0f, 60f), new Vector2(640f, 120f));
+            new Vector2(0f, 70f), new Vector2(680f, 120f));
 
-        CreateButton(panel.transform, "确定", -70f, OnConfirmNewGame, out _, new Vector2(260f, 64f), new Vector2(-90f, -70f));
-        CreateButton(panel.transform, "取消", -70f, OnCancelConfirm, out _, new Vector2(260f, 64f), new Vector2(90f, -70f));
+        // 两个按钮：宽 200，中心在 ±120 → 左边占 -220~-20，右边占 20~220，中间留 40 的缝
+        CreateButton(panel.transform, "确定", -80f, OnConfirmNewGame, out _,
+            new Vector2(200f, 60f), new Vector2(-120f, -80f));
+        CreateButton(panel.transform, "取消", -80f, OnCancelConfirm, out _,
+            new Vector2(200f, 60f), new Vector2(120f, -80f));
 
         confirmPanel.SetActive(false);
     }
