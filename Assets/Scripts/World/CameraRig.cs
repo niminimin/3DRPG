@@ -2,16 +2,16 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 相机机位组：跨场景保留（DontDestroyOnLoad），切场景后自动重新绑定新场景的玩家。
-/// 结构建议：
+/// 相机机位组：放在 Boot 场景里，玩家常驻，所以相机也常驻（但不需要 DontDestroyOnLoad）。
+/// 注意不要再设 Persistent：从游戏回主菜单时会卸载 Boot，如果相机跨场景活着，
+/// 主菜单场景就会有两台相机 + 两个 AudioListener，渲染出黑屏/错位。
+/// 结构：
 ///   CameraRig (本脚本)
 ///   ├─ Main Camera (Camera + CinemachineBrain)
 ///   └─ FreeLook Camera (CinemachineFreeLook)
 /// </summary>
 public class CameraRig : Singleton<CameraRig>
 {
-    protected override bool Persistent { get { return true; } }
-
     [Tooltip("留空会自动在子物体里找")]
     public Cinemachine.CinemachineFreeLook freeLook;
 

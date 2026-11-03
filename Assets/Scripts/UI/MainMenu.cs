@@ -22,10 +22,14 @@ public class MainMenu : MonoBehaviour
     private Button continueButton;
     private bool isLoading;
 
-    private void Start()
+    private IEnumerator Start()
     {
         BuildUI();
         RefreshContinueButton();
+
+        // 从游戏里退回主菜单时，黑幕是全黑的 → 这里淡入
+        if (SceneFader.instance != null && SceneFader.instance.Alpha > 0.01f)
+            yield return SceneFader.instance.FadeIn();
     }
 
     /// <summary>"继续"按钮：没有存档就灰掉。</summary>
