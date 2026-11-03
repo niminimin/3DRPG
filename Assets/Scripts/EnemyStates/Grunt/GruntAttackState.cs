@@ -4,7 +4,8 @@ using UnityEngine;
 
 /// <summary>
 /// Boss（Grunt）的攻击状态：
-/// - 玩家进入技能范围（AttackDataSO.skillRange，较小）且技能冷却好了 → 优先放技能
+/// - 玩家进入技能范围（AttackDataSO.skillRange）且技能冷却好了 → 优先放技能
+/// - 技能就绪但还差一点距离 → 主动贴近（以前是站桩，导致永远吃不到技能）
 /// - 否则按普通攻击冷却出手
 /// 两者是独立的冷却，互不抢占。
 /// </summary>
@@ -20,9 +21,8 @@ public class GruntAttackState : BaseState
     {
         this.enemy = enemy;
 
-        enemy.Locomotion.Stop();                              // 站定，不能边追边打
+        StandStill();                                         // 站定，不能边追边打
         enemy.Locomotion.FaceTo(enemy.Perception.TargetPosition);
-        enemy.animator.SetBool("IsChase", false);
 
         attackTimer = 0f;                                     // 进状态立刻打第一下
         if (skillTimer <= 0f) skillTimer = FirstSkillDelay;
@@ -40,8 +40,6 @@ public class GruntAttackState : BaseState
             return;
         }
 
-        enemy.Locomotion.FaceTo(enemy.Perception.TargetPosition);
-
         float distance = enemy.Perception.DistanceToTarget();
         if (distance > enemy.Combat.AttackExitRange)
         {
@@ -51,16 +49,32 @@ public class GruntAttackState : BaseState
 
         GruntCombat combat = enemy.Combat as GruntCombat;
 
-        // 技能优先：范围更小、冷却更长
+        // ==================== 技能优先 ====================
         skillTimer -= Time.deltaTime;
-        if (combat != null && skillTimer <= 0f && distance <= combat.SkillRange)
+
+        if (combat != null && skillTimer <= 0f)
         {
-            skillTimer = combat.skillCoolDown;
-            combat.BeginSkill(enemy.Perception.Target);
+            // 已经在技能范围内 → 直接放
+            if (distance <= combat.SkillRange)
+            {
+                skillTimer = combat.skillCoolDown;
+                StandStill();
+                enemy.Locomotion.FaceTo(enemy.Perception.TargetPosition);
+                combat.BeginSkill(enemy.Perception.Target);
+                return;
+            }
+
+            // 技能就绪但还差距离 → 主动贴近。
+            // 之前的写法是"站定等玩家进 1.5 米"，但玩家攻击距离也是 1.5（量到碰撞体表面），
+            // 双方都停在 2 米左右 → 技能几乎永远触发不了。
+            WalkTowardsTarget();
             return;
         }
 
-        // 普通攻击
+        // ==================== 普通攻击 ====================
+        StandStill();
+        enemy.Locomotion.FaceTo(enemy.Perception.TargetPosition);
+
         attackTimer -= Time.deltaTime;
         if (attackTimer <= 0f)
         {
@@ -73,5 +87,25 @@ public class GruntAttackState : BaseState
     {
         // 离开攻击状态时，还没落地的攻击/技能作废
         enemy.Combat.CancelPendingAttack();
+    }
+
+    // ==================== 移动小工具 ====================
+    /// <summary>边走边播走路动画（IsChase 控制敌人的走/站动画）。</summary>
+    private void WalkTowardsTarget()
+    {
+        if (!enemy.animator.GetBool("IsChase"))
+            enemy.animator.SetBool("IsChase", true);
+
+        enemy.Locomotion.MoveTo(enemy.Perception.TargetPosition);
+    }
+
+    /// <summary>站定：只在真的还在走的时候才停，避免每帧都 ResetPath。</summary>
+    private void StandStill()
+    {
+        if (enemy.animator.GetBool("IsChase"))
+            enemy.animator.SetBool("IsChase", false);
+
+        if (enemy.Locomotion.Agent != null && !enemy.Locomotion.Agent.isStopped)
+            enemy.Locomotion.Stop();
     }
 }
