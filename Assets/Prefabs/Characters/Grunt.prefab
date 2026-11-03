@@ -366,7 +366,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attackExitBuffer: 0.5
-  skillCoolDown: 12
+  skillCoolDown: 8
   launchUpSpeed: 6
   dizzyTime: 1.2
   secondHitRange: 2.2
