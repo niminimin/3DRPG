@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a9ff4a8a4b10b74b855a317b4166822, type: 3}
+  m_Name: IronOre
+  m_EditorClassIdentifier: 
+  id: ore_iron
+  displayName: "\u94C1\u77FF\u77F3"
+  description: "\u53EF\u7528\u4E8E\u953B\u9020\u7684\u77FF\u77F3\u3002"
+  icon: {fileID: 0}
+  category: 2
+  buyPrice: 20
+  sellPrice: 10
+  maxStack: 99
+  healAmount: 0
