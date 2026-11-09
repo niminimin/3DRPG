@@ -15,7 +15,7 @@ MonoBehaviour:
   id: ore_iron
   displayName: "\u94C1\u77FF\u77F3"
   description: "\u53EF\u7528\u4E8E\u953B\u9020\u7684\u77FF\u77F3\u3002"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 80050d924a8f8f0458967ac6a6adddb6, type: 3}
   category: 2
   buyPrice: 20
   sellPrice: 10

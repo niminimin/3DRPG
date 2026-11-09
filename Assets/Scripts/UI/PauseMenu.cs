@@ -12,6 +12,9 @@ public class PauseMenu : Singleton<PauseMenu>
     private Text titleText;
     private bool isOpen;
 
+    /// <summary>暂停菜单是否打开（背包界面用它避免抢 ESC）。</summary>
+    public bool IsOpen { get { return isOpen; } }
+
     private void Start()
     {
         BuildUI();
@@ -20,6 +23,9 @@ public class PauseMenu : Singleton<PauseMenu>
 
     private void Update()
     {
+        // 背包开着的时候，ESC 交给背包处理（它会给 I / ESC 各自响应）
+        if (InventoryUI.instance != null && InventoryUI.instance.IsOpen) return;
+
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (isOpen) Resume();
