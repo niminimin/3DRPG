@@ -151,6 +151,10 @@ public class SaveManager : Singleton<SaveManager>
         CharacterStats stats = progress != null ? progress.stats : null;
         if (stats != null) Data.curHealth = stats.CurHealth;
 
+        // 背包 + 金币
+        if (InventoryService.instance != null)
+            InventoryService.instance.WriteTo(Data);
+
         if (WorldLoader.instance != null && !string.IsNullOrEmpty(WorldLoader.instance.CurrentWorld))
             Data.sceneName = WorldLoader.instance.CurrentWorld;
 
@@ -171,6 +175,10 @@ public class SaveManager : Singleton<SaveManager>
 
         CharacterStats stats = progress.stats;
         if (stats != null) stats.Revive(Mathf.Max(1, Data.curHealth));
+
+        // 背包 + 金币（读档后按 id 还原每格物品）
+        if (InventoryService.instance != null)
+            InventoryService.instance.ReadFrom(Data);
 
         if (GameManager.instance != null) GameManager.instance.ResetGameOver();
     }
@@ -264,6 +272,10 @@ public class SaveManager : Singleton<SaveManager>
 
             progress.RestoreState(1, 0);
         }
+
+        // 背包清空、给初始金币
+        if (InventoryService.instance != null)
+            InventoryService.instance.ResetForNewGame();
 
         if (GameManager.instance != null) GameManager.instance.ResetGameOver();
 

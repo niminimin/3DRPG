@@ -110,6 +110,12 @@ public class CharacterStats : MonoBehaviour
     {
         get { return characterData == null ? 0 : characterData.expReward; }
     }
+
+    /// <summary>被击败时掉落的金币（来自 CharacterDataSO）。</summary>
+    public int GoldReward
+    {
+        get { return characterData == null ? 0 : characterData.goldReward; }
+    }
     #endregion
 
     #region 成长（升级用）
@@ -165,6 +171,21 @@ public class CharacterStats : MonoBehaviour
         curDefence = MaxDefence;
 
         if (OnHealthChanged != null) OnHealthChanged(curHealth);
+    }
+
+    /// <summary>
+    /// 回血（药水用）。返回实际回复量：满血时返回 0，调用方据此决定要不要消耗药水。
+    /// </summary>
+    public int Heal(int amount)
+    {
+        if (amount <= 0 || isDead) return 0;
+
+        int before = curHealth;
+        curHealth = Mathf.Min(curHealth + amount, MaxHealth);
+        int healed = curHealth - before;
+
+        if (healed > 0 && OnHealthChanged != null) OnHealthChanged(curHealth);
+        return healed;
     }
     #endregion
 

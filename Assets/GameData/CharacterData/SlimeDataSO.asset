@@ -15,3 +15,4 @@ MonoBehaviour:
   maxHealth: 30
   baseDefence: 2
   expReward: 25
+  goldReward: 5

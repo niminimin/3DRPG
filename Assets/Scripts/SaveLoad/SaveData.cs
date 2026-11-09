@@ -25,6 +25,13 @@ public class SaveData
     [Header("敌人：只记死亡的 ID")]
     public List<string> deadEnemyIds = new List<string>();
 
+    [Header("背包")]
+    public int gold;
+    [Tooltip("每格的物品 id（空格为 null）")]
+    public string[] slotIds = new string[0];
+    [Tooltip("每格的数量（空格为 0）")]
+    public int[] slotCounts = new int[0];
+
     [Header("存档时间（用于显示）")]
     public string savedAt = "";
 

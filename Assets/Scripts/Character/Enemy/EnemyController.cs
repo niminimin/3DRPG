@@ -171,6 +171,10 @@ public abstract class EnemyController : MonoBehaviour
         // 给玩家发经验（数值来自这个敌人自己的 CharacterDataSO.expReward）
         if (characterStats != null && PlayerProgress.instance != null)
             PlayerProgress.instance.AddExp(characterStats.ExpReward);
+
+        // 掉金币（数值来自 CharacterDataSO.goldReward）
+        if (characterStats != null && InventoryService.instance != null)
+            InventoryService.instance.AddGold(characterStats.GoldReward);
     }
 
     /// <summary>玩家死亡：切到庆祝状态（已经死了的敌人不庆祝）。</summary>

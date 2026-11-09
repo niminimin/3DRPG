@@ -12,4 +12,7 @@ public class CharacterDataSO : ScriptableObject
     [Header("Reward")]
     [Tooltip("被击败后奖励给玩家的经验值（玩家自己这个值不用填）")]
     public int expReward;
+
+    [Tooltip("被击败后掉落的金币（玩家自己这个值不用填）")]
+    public int goldReward;
 }

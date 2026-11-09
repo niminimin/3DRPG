@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   baseDefence: 2
+  expReward: 0
+  goldReward: 0
