@@ -11,28 +11,37 @@ using UnityEngine.UI;
 ///   2. 把玩家操作喊出去（OnXxxClicked 事件）
 ///
 /// 它**不认识** Inventory / Shop / InventoryService —— 一行都没引用。
-/// 谁买了东西、失败原因是什么，全由 Presenter（InventoryUI）决定。
+///
+/// 布局（参考分辨率 1920x1080，窗口 1560x880）：
+///   y = +385  标题 / 金币
+///   y = +300  列标题（商店 / 背包）
+///   y = +220  第一排格子（格子 90，间距 104）
+///   y = -205  操作按钮
+///   y = -335  详情框（1440x190）
 /// </summary>
 public class InventoryPanel : MonoBehaviour
 {
-    // ==================== 一格的引用 ====================
+    // ==================== 布局常量（改这里就能整体调） ====================
+    private const float SlotSize = 90f;
+    private const float SlotStep = 104f;
+    private const float GridTop = 220f;
+    private const int BagColumns = 6;
+    private const int BagRows = 4;
+    private const int ShopColumns = 4;
+    private const int ShopRows = 2;
+
     private class Slot
     {
         public Button button;
         public Image background;
         public Image icon;
         public Text count;
-        public Text price;      // 商店格用
     }
-
-    private const int BagColumns = 6;
-    private const int BagRows = 4;
-    private const int ShopColumns = 4;
-    private const int ShopRows = 2;
 
     private CanvasGroup group;
     private Text goldLabel;
     private Text detailName;
+    private Text detailPrice;
     private Text detailDescription;
     private Text quantityLabel;
     private Text toastLabel;
@@ -87,7 +96,7 @@ public class InventoryPanel : MonoBehaviour
 
         Canvas canvas = canvasGO.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 25000;          // 在 HUD 之上、暂停菜单(31000)之下
+        canvas.sortingOrder = 25000;
 
         CanvasScaler scaler = canvasGO.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -96,81 +105,82 @@ public class InventoryPanel : MonoBehaviour
 
         group = canvasGO.AddComponent<CanvasGroup>();
 
-        // 半透明背景（挡住后面的世界，也挡住点击）
-        Image dim = CreateImage(canvasGO.transform, "Dim", new Vector2(0f, 0f), Vector2.zero, Color.black);
+        // 背景遮罩
+        Image dim = CreateImage(canvasGO.transform, "Dim", Vector2.zero, Color.black);
         Stretch(dim.rectTransform);
         dim.color = new Color(0f, 0f, 0f, 0.78f);
 
         // 主窗口
         Image window = CreateImage(canvasGO.transform, "Window", new Vector2(1560f, 880f), Vector2.zero,
             new Color(0.11f, 0.12f, 0.15f, 0.98f));
-
         Transform root = window.transform;
 
-        // 标题 + 金币
-        Text title = CreateText(root, "背包与商店", 44, new Vector2(-660f, 390f), new Vector2(400f, 60f));
+        // ---------- 顶栏 ----------
+        Text title = CreateText(root, "背包与商店", 42, new Vector2(-550f, 385f), new Vector2(420f, 56f));
         title.alignment = TextAnchor.MiddleLeft;
         title.fontStyle = FontStyle.Bold;
 
-        goldLabel = CreateText(root, "金币 0", 32, new Vector2(520f, 390f), new Vector2(360f, 50f));
+        goldLabel = CreateText(root, "金币 0", 32, new Vector2(500f, 385f), new Vector2(400f, 50f));
         goldLabel.alignment = TextAnchor.MiddleRight;
         goldLabel.color = new Color(1f, 0.85f, 0.35f);
 
-        // 左：商店
-        Text shopTitle = CreateText(root, "商店", 32, new Vector2(-620f, 320f), new Vector2(200f, 44f));
+        // ---------- 列标题 ----------
+        Text shopTitle = CreateText(root, "商店", 30, new Vector2(-660f, 300f), new Vector2(200f, 40f));
         shopTitle.alignment = TextAnchor.MiddleLeft;
         shopTitle.color = new Color(0.55f, 0.85f, 0.95f);
 
-        BuildGrid(root, shopSlots, ShopColumns, ShopRows, new Vector2(-640f, 240f), true);
-
-        // 右：背包
-        Text bagTitle = CreateText(root, "背包", 32, new Vector2(40f, 320f), new Vector2(200f, 44f));
+        Text bagTitle = CreateText(root, "背包", 30, new Vector2(-25f, 300f), new Vector2(200f, 40f));
         bagTitle.alignment = TextAnchor.MiddleLeft;
         bagTitle.color = new Color(0.78f, 0.72f, 0.95f);
 
-        BuildGrid(root, bagSlots, BagColumns, BagRows, new Vector2(60f, 240f), false);
+        // ---------- 格子 ----------
+        BuildGrid(root, shopSlots, ShopColumns, ShopRows, new Vector2(-620f, GridTop), true);
+        BuildGrid(root, bagSlots, BagColumns, BagRows, new Vector2(-25f, GridTop), false);
 
-        // 底部详情
-        Image detailBox = CreateImage(root, "Detail", new Vector2(1480f, 190f), new Vector2(0f, -330f),
+        // ---------- 操作行 ----------
+        const float actionY = -205f;
+
+        buyButton = CreateButton(root, "购买", new Vector2(-560f, actionY), new Vector2(180f, 56f),
+            new Color(0.25f, 0.62f, 0.7f), () => { if (BuyClicked != null) BuyClicked(); });
+        sellButton = CreateButton(root, "出售", new Vector2(-360f, actionY), new Vector2(180f, 56f),
+            new Color(0.5f, 0.42f, 0.75f), () => { if (SellClicked != null) SellClicked(); });
+        useButton = CreateButton(root, "使用", new Vector2(-160f, actionY), new Vector2(180f, 56f),
+            new Color(0.32f, 0.62f, 0.36f), () => { if (UseClicked != null) UseClicked(); });
+
+        minusButton = CreateButton(root, "－", new Vector2(90f, actionY), new Vector2(64f, 56f),
+            new Color(0.22f, 0.24f, 0.28f), () => { if (MinusClicked != null) MinusClicked(); });
+        quantityLabel = CreateText(root, "1", 32, new Vector2(175f, actionY), new Vector2(90f, 50f));
+        plusButton = CreateButton(root, "＋", new Vector2(260f, actionY), new Vector2(64f, 56f),
+            new Color(0.22f, 0.24f, 0.28f), () => { if (PlusClicked != null) PlusClicked(); });
+
+        CreateButton(root, "关闭 (I)", new Vector2(600f, actionY), new Vector2(200f, 56f),
+            new Color(0.35f, 0.2f, 0.2f), () => { if (CloseClicked != null) CloseClicked(); });
+
+        // ---------- 详情框 ----------
+        Image detailBox = CreateImage(root, "Detail", new Vector2(1440f, 190f), new Vector2(0f, -335f),
             new Color(0.16f, 0.18f, 0.22f, 1f));
+        Transform detail = detailBox.transform;
 
-        detailIcon = CreateImage(detailBox.transform, "Icon", new Vector2(110f, 110f), new Vector2(-650f, 10f),
-            Color.white);
+        detailIcon = CreateImage(detail, "Icon", new Vector2(100f, 100f), new Vector2(-620f, 0f), Color.white);
         detailIcon.preserveAspect = true;
+        detailIcon.enabled = false;
 
-        detailName = CreateText(detailBox.transform, "选择一件物品", 34, new Vector2(-330f, 55f),
-            new Vector2(560f, 50f));
+        detailName = CreateText(detail, "选择一件物品", 32, new Vector2(-300f, 55f), new Vector2(520f, 44f));
         detailName.alignment = TextAnchor.MiddleLeft;
 
-        detailDescription = CreateText(detailBox.transform, "", 24, new Vector2(-140f, -10f),
-            new Vector2(940f, 80f));
+        detailPrice = CreateText(detail, "", 24, new Vector2(-300f, 15f), new Vector2(520f, 32f));
+        detailPrice.alignment = TextAnchor.MiddleLeft;
+        detailPrice.color = new Color(1f, 0.85f, 0.4f);
+
+        detailDescription = CreateText(detail, "", 24, new Vector2(230f, -10f), new Vector2(940f, 120f));
         detailDescription.alignment = TextAnchor.UpperLeft;
         detailDescription.color = new Color(0.75f, 0.78f, 0.82f);
 
-        // 操作按钮
-        buyButton = CreateButton(root, "购买", new Vector2(-520f, -190f), new Vector2(200f, 64f),
-            new Color(0.25f, 0.62f, 0.7f), () => { if (BuyClicked != null) BuyClicked(); });
-        sellButton = CreateButton(root, "出售", new Vector2(-290f, -190f), new Vector2(200f, 64f),
-            new Color(0.5f, 0.42f, 0.75f), () => { if (SellClicked != null) SellClicked(); });
-        useButton = CreateButton(root, "使用", new Vector2(-60f, -190f), new Vector2(200f, 64f),
-            new Color(0.32f, 0.62f, 0.36f), () => { if (UseClicked != null) UseClicked(); });
-
-        // 数量
-        minusButton = CreateButton(root, "-", new Vector2(220f, -190f), new Vector2(64f, 64f),
-            new Color(0.22f, 0.24f, 0.28f), () => { if (MinusClicked != null) MinusClicked(); });
-        quantityLabel = CreateText(root, "1", 34, new Vector2(300f, -190f), new Vector2(90f, 50f));
-        plusButton = CreateButton(root, "+", new Vector2(380f, -190f), new Vector2(64f, 64f),
-            new Color(0.22f, 0.24f, 0.28f), () => { if (PlusClicked != null) PlusClicked(); });
-
-        // 关闭
-        CreateButton(root, "关闭 (I)", new Vector2(600f, -190f), new Vector2(200f, 64f),
-            new Color(0.35f, 0.2f, 0.2f), () => { if (CloseClicked != null) CloseClicked(); });
-
-        // 提示条
-        Image toastBg = CreateImage(root, "Toast", new Vector2(700f, 60f), new Vector2(0f, 340f),
-            new Color(0f, 0f, 0f, 0.85f));
+        // ---------- 提示条 ----------
+        Image toastBg = CreateImage(root, "Toast", new Vector2(480f, 56f), new Vector2(0f, 355f),
+            new Color(0f, 0f, 0f, 0.88f));
         toastRoot = toastBg.gameObject;
-        toastLabel = CreateText(toastBg.transform, "", 28, Vector2.zero, new Vector2(660f, 50f));
+        toastLabel = CreateText(toastBg.transform, "", 26, Vector2.zero, new Vector2(450f, 48f));
         toastRoot.SetActive(false);
 
         Debug.Log("[InventoryPanel] 界面已生成：背包 " + bagSlots.Count + " 格，商店 " + shopSlots.Count + " 格");
@@ -184,8 +194,8 @@ public class InventoryPanel : MonoBehaviour
             for (int c = 0; c < columns; c++)
             {
                 int index = slots.Count;
-                Vector2 pos = start + new Vector2(c * 130f, -r * 130f);
-                Slot slot = CreateSlot(parent, new Vector2(120f, 120f), pos, isShop);
+                Vector2 pos = start + new Vector2(c * SlotStep, -r * SlotStep);
+                Slot slot = CreateSlot(parent, pos, isShop);
 
                 slot.button.onClick.AddListener(() => {
                     if (isShop) { if (ShopSlotClicked != null) ShopSlotClicked(index); }
@@ -197,7 +207,7 @@ public class InventoryPanel : MonoBehaviour
         }
     }
 
-    private Slot CreateSlot(Transform parent, Vector2 size, Vector2 pos, bool isShop)
+    private Slot CreateSlot(Transform parent, Vector2 pos, bool isShop)
     {
         var slot = new Slot();
 
@@ -207,28 +217,23 @@ public class InventoryPanel : MonoBehaviour
         RectTransform rt = go.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.sizeDelta = size;
+        rt.sizeDelta = new Vector2(SlotSize, SlotSize);
         rt.anchoredPosition = pos;
 
         slot.background = go.GetComponent<Image>();
-        slot.background.color = isShop
-            ? new Color(0.16f, 0.22f, 0.26f, 1f)
-            : new Color(0.18f, 0.18f, 0.24f, 1f);
+        slot.background.color = SlotColor(isShop, false);
 
         slot.button = go.GetComponent<Button>();
         slot.button.targetGraphic = slot.background;
 
-        slot.icon = CreateImage(go.transform, "Icon", new Vector2(84f, 84f), new Vector2(0f, 6f), Color.white);
+        // 图标：60，略微偏上；数量在下沿，两者不重叠
+        slot.icon = CreateImage(go.transform, "Icon", new Vector2(60f, 60f), new Vector2(0f, 8f), Color.white);
         slot.icon.preserveAspect = true;
         slot.icon.enabled = false;
 
-        slot.count = CreateText(go.transform, "", 24, new Vector2(0f, -38f), new Vector2(100f, 30f));
-        slot.count.alignment = TextAnchor.MiddleRight;
+        slot.count = CreateText(go.transform, "", 22, new Vector2(0f, -31f), new Vector2(82f, 26f));
+        slot.count.alignment = TextAnchor.MiddleCenter;
         slot.count.color = Color.white;
-
-        slot.price = CreateText(go.transform, "", 20, new Vector2(0f, 42f), new Vector2(110f, 24f));
-        slot.price.alignment = TextAnchor.MiddleCenter;
-        slot.price.color = new Color(1f, 0.85f, 0.4f);
 
         return slot;
     }
@@ -260,12 +265,16 @@ public class InventoryPanel : MonoBehaviour
 
         slot.icon.enabled = hasItem;
         slot.icon.sprite = icon;
-        slot.price.text = hasItem ? price + " 金" : "";
-        slot.count.text = hasItem ? (stock < 0 ? "∞" : "×" + stock) : "";
-        slot.count.color = hasItem && stock == 0 ? new Color(1f, 0.4f, 0.4f) : Color.white;
-        slot.background.color = selected
-            ? new Color(0.25f, 0.45f, 0.5f, 1f)
-            : new Color(0.16f, 0.22f, 0.26f, 1f);
+
+        if (!hasItem) slot.count.text = "";
+        else if (stock < 0) slot.count.text = "∞";
+        else slot.count.text = "×" + stock;
+
+        slot.count.color = hasItem && stock == 0
+            ? new Color(1f, 0.4f, 0.4f)
+            : Color.white;
+
+        slot.background.color = SlotColor(true, selected);
     }
 
     public void ShowBagSlot(int index, Sprite icon, int count, bool selected)
@@ -278,10 +287,7 @@ public class InventoryPanel : MonoBehaviour
         slot.icon.enabled = hasItem;
         slot.icon.sprite = icon;
         slot.count.text = hasItem && count > 1 ? "×" + count : "";
-        slot.price.text = "";
-        slot.background.color = selected
-            ? new Color(0.3f, 0.28f, 0.45f, 1f)
-            : new Color(0.18f, 0.18f, 0.24f, 1f);
+        slot.background.color = SlotColor(false, selected);
     }
 
     public void ShowDetail(Sprite icon, string name, string description, string priceText)
@@ -289,6 +295,7 @@ public class InventoryPanel : MonoBehaviour
         detailIcon.enabled = icon != null;
         detailIcon.sprite = icon;
         detailName.text = string.IsNullOrEmpty(name) ? "选择一件物品" : name;
+        detailPrice.text = string.IsNullOrEmpty(priceText) ? "" : priceText;
         detailDescription.text = description;
     }
 
@@ -316,6 +323,14 @@ public class InventoryPanel : MonoBehaviour
     }
 
     // ==================== 小工具 ====================
+
+    private static Color SlotColor(bool isShop, bool selected)
+    {
+        if (isShop)
+            return selected ? new Color(0.25f, 0.45f, 0.5f, 1f) : new Color(0.16f, 0.22f, 0.26f, 1f);
+
+        return selected ? new Color(0.30f, 0.28f, 0.45f, 1f) : new Color(0.18f, 0.18f, 0.24f, 1f);
+    }
 
     private static Image CreateImage(Transform parent, string name, Vector2 size, Vector2 pos, Color color)
     {
@@ -375,7 +390,7 @@ public class InventoryPanel : MonoBehaviour
         btn.targetGraphic = img;
         btn.onClick.AddListener(action);
 
-        CreateText(go.transform, label, 28, Vector2.zero, size);
+        CreateText(go.transform, label, 26, Vector2.zero, size);
         return btn;
     }
 
