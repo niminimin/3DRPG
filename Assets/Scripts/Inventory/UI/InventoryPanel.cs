@@ -106,7 +106,7 @@ public class InventoryPanel : MonoBehaviour
         group = canvasGO.AddComponent<CanvasGroup>();
 
         // 背景遮罩
-        Image dim = CreateImage(canvasGO.transform, "Dim", Vector2.zero, Color.black);
+        Image dim = CreateImage(canvasGO.transform, "Dim", Vector2.zero, Vector2.zero, Color.black);
         Stretch(dim.rectTransform);
         dim.color = new Color(0f, 0f, 0f, 0.78f);
 
